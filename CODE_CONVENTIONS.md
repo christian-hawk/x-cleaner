@@ -44,9 +44,7 @@
 3. Expresses intent clearly
 4. Minimizes classes and methods
 
-### Critical Rules
-
-#### 1. DRY Principle (Don't Repeat Yourself)
+### DRY Principle (Don't Repeat Yourself)
 - ❌ **NEVER** duplicate logic
 - ✅ Extract repeated code into reusable functions/classes
 - ✅ Use inheritance, composition, or utility functions
@@ -91,7 +89,7 @@ def unfollow_bulk(account_ids: List[str]) -> UnfollowResult:
     return [_unfollow_single_account(acc_id) for acc_id in account_ids]
 ```
 
-#### 2. Self-Documenting Code
+### Self-Documenting Code
 
 - ✅ Variable and function names must be **EXTREMELY self-explanatory**
 - ✅ Anyone reading the code should understand it **WITHOUT comments**
@@ -116,7 +114,7 @@ def extract_and_process_user_id(user_data: dict) -> Optional[ProcessedUser]:
     return process_user_id(user_id)
 ```
 
-#### 3. Comments: A Necessary Evil
+### Comments (A Necessary Evil)
 
 - ⚠️ **Comments are a code smell** - they indicate the code isn't clear enough
 - ✅ Use comments ONLY for:
