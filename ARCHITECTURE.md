@@ -335,13 +335,152 @@ async def trigger_scan(
 
 ## 3. Code Conventions
 
+### 🎯 CLEAN CODE PRINCIPLES (MANDATORY)
+
+**Code is read far more often than it is written. Optimize for readability above all else.**
+
+#### Critical Rules
+
+**1. DRY Principle (Don't Repeat Yourself)**
+- ❌ **NEVER** duplicate logic
+- ✅ Extract repeated code into reusable functions/classes
+- ✅ Use inheritance, composition, or utility functions
+- If you copy-paste code, STOP and refactor
+
+**2. Self-Documenting Code**
+- ✅ Variable and function names must be **EXTREMELY self-explanatory**
+- ✅ Anyone reading the code should understand it **WITHOUT comments**
+- ❌ Avoid abbreviations: `usr` → `user`, `acc` → `account`, `cat` → `category`
+- ❌ Avoid single letters except for: `i`, `j`, `k` (loops), `e` (exceptions)
+
+**3. Comments: A Necessary Evil**
+- ⚠️ **Comments are a code smell** - they indicate the code isn't clear enough
+- ✅ Use comments ONLY for:
+  - Complex algorithms that can't be simplified
+  - Business logic WHY (not WHAT or HOW)
+  - Workarounds for external API quirks
+  - Performance optimization explanations
+- ❌ **NEVER** comment obvious code
+- ❌ **NEVER** use comments to explain bad variable names → rename instead
+
+```python
+# ❌ BAD - Comments explaining what code does
+def process_data(d):
+    # Get the user id from the dictionary
+    uid = d.get("id")
+    # Check if user id exists
+    if uid:
+        # Process the user id
+        return process_uid(uid)
+
+# ✅ GOOD - Self-documenting code, no comments needed
+def extract_and_process_user_id(user_data: dict) -> Optional[ProcessedUser]:
+    user_id = user_data.get("id")
+    if not user_id:
+        return None
+    return process_user_id(user_id)
+```
+
+#### Code Size Limits
+
+**Files:**
+- ✅ **Desirable**: ≤ 500 lines
+- ⚠️ **Warning**: 500-800 lines (consider splitting)
+- 🚨 **MANDATORY REFACTOR**: > 800 lines
+
+**Functions/Methods:**
+- ✅ **Desirable**: ≤ 60 lines
+- ⚠️ **Warning**: 60-100 lines (consider splitting)
+- 🚨 **MANDATORY REFACTOR**: > 100 lines
+
+**Cyclomatic Complexity:**
+- ✅ **Maximum Allowed**: 15
+- ✅ **Target**: ≤ 10
+- 🚨 If complexity > 15: **MANDATORY REFACTOR** - split into smaller functions
+
+**How to measure:**
+```bash
+# Install radon
+pip install radon
+
+# Check cyclomatic complexity
+radon cc backend/ -a -nb
+
+# Check lines of code
+radon raw backend/ -s
+```
+
+#### Refactoring Triggers
+
+When you see:
+- 🚨 Function > 100 lines → Extract sub-functions
+- 🚨 File > 800 lines → Split into multiple modules
+- 🚨 Cyclomatic complexity > 15 → Simplify logic, extract functions
+- 🚨 Duplicate code in 2+ places → Create shared function/class
+- 🚨 Function with > 5 parameters → Use object/dataclass
+- 🚨 Nested if/else > 3 levels → Use early returns, guard clauses, or strategy pattern
+
+```python
+# ❌ BAD - Too complex, nested, hard to read
+def process_account(account, categories, min_confidence, retry_count, use_cache):
+    if account:
+        if account.is_active:
+            if categories:
+                if len(categories) > 0:
+                    for category in categories:
+                        if category.confidence > min_confidence:
+                            if use_cache:
+                                cached = get_cache(account.id)
+                                if cached:
+                                    return cached
+                            result = categorize(account, category)
+                            if result:
+                                if retry_count > 0:
+                                    return result
+    return None
+
+# ✅ GOOD - Clean, early returns, readable
+def process_account_categorization(
+    account: Account,
+    categories: List[Category],
+    min_confidence: float,
+    use_cache: bool = True
+) -> Optional[CategorizationResult]:
+    """Process account categorization with confidence threshold."""
+
+    # Guard clauses
+    if not account or not account.is_active:
+        return None
+
+    if not categories:
+        return None
+
+    # Check cache first
+    if use_cache:
+        cached_result = get_cached_categorization(account.id)
+        if cached_result:
+            return cached_result
+
+    # Find best matching category
+    valid_categories = [c for c in categories if c.confidence > min_confidence]
+    if not valid_categories:
+        return None
+
+    return categorize_account(account, valid_categories)
+```
+
 ### 3.1 Python Style Guide
 
-**Base Standard**: PEP 8 with modifications
+**Base Standard**: **PEP 8** (MANDATORY - no exceptions without justification)
 
 **Line Length**: 88 characters (Black formatter default)
 
-**Imports Order**:
+**Imports Location**: **ALWAYS at the top of the file** (after module docstring)
+- ❌ **NEVER** import inside functions (except for circular dependency workarounds)
+- ❌ **NEVER** import in the middle of the file
+- ✅ All imports at the top, properly organized
+
+**Imports Order** (MANDATORY):
 ```python
 # 1. Standard library
 import os
@@ -356,30 +495,112 @@ from backend.db.models import Account
 from backend.core.scanner import Scanner
 ```
 
-**Naming Conventions**:
+**Naming Conventions** (MANDATORY - EXTREMELY SELF-EXPLANATORY):
+
+**Golden Rule**: Names must be so clear that comments become unnecessary.
+
 ```python
-# Classes: PascalCase
-class AccountRepository:
+# Classes: PascalCase - Nouns describing what the class represents
+class AccountRepository:  # ✅ Clear: manages account data
     pass
 
-# Functions/methods: snake_case
-def scan_accounts():
+class XClient:  # ❌ Unclear: what does X mean?
     pass
 
-# Constants: UPPER_SNAKE_CASE
-MAX_RETRIES = 3
-API_BASE_URL = "https://api.x.com"
+class XApiClient:  # ✅ Better: X API client
+    pass
+
+# Functions/methods: snake_case - Verbs describing what they do
+def scan_accounts():  # ✅ Clear action
+    pass
+
+def get_user_following_accounts_with_metadata():  # ✅ Very specific
+    pass
+
+def process():  # ❌ Too vague - process WHAT?
+    pass
+
+def proc_acc():  # ❌ Abbreviations - FORBIDDEN
+    pass
+
+# Variables: snake_case - EXTREMELY descriptive
+total_accounts_scanned = 847  # ✅ Perfect
+unfollowed_account_count = 23  # ✅ Perfect
+failed_account_ids = []  # ✅ Clear
+
+acc = 847  # ❌ FORBIDDEN - abbreviation
+x = 23     # ❌ FORBIDDEN - meaningless
+data = []  # ❌ Too vague - what data?
+
+# Constants: UPPER_SNAKE_CASE - Describe the value's purpose
+MAX_RETRY_ATTEMPTS = 3
+X_API_BASE_URL = "https://api.x.com"
+GROK_API_RATE_LIMIT_PER_MINUTE = 60
+UNFOLLOW_RATE_LIMIT_DELAY_SECONDS = 1.2
+
+MAX = 3  # ❌ Max what?
+URL = "https://api.x.com"  # ❌ Which URL?
+
+# Boolean variables: Start with is_, has_, should_, can_
+is_account_active = True
+has_valid_credentials = False
+should_retry_on_failure = True
+can_unfollow_account = True
+
+active = True  # ❌ Not clear it's boolean
+valid = False  # ❌ Valid what?
 
 # Private members: leading underscore
 class Scanner:
     def __init__(self):
-        self._rate_limiter = RateLimiter()  # Private
+        self._rate_limiter = RateLimiter()  # ✅ Private implementation detail
+        self._authenticated_user_id = None  # ✅ Private state
 
-    def _fetch_batch(self):  # Private method
+    def _fetch_batch(self):  # ✅ Private helper method
         pass
 
-# Type aliases: PascalCase
+    def scan_accounts(self):  # ✅ Public API
+        pass
+
+# Type aliases: PascalCase - Describe the type's semantic meaning
 AccountList = List[Account]
+CategoryMapping = Dict[str, List[Account]]
+UnfollowCallback = Callable[[int, int, str], None]
+
+MyList = List[Account]  # ❌ Not descriptive
+Data = Dict[str, Any]  # ❌ Too vague
+```
+
+**Naming Anti-Patterns (FORBIDDEN)**:
+```python
+# ❌ Single letter variables (except i, j, k in loops, e in exceptions)
+a = get_account()
+x = calculate()
+d = {"key": "value"}
+
+# ❌ Abbreviations
+usr = get_user()
+acc = get_account()
+cat = get_category()
+msg = "Hello"
+cfg = load_config()
+
+# ❌ Numbers in names (except when semantically meaningful like HTTP codes)
+account1 = fetch()
+account2 = fetch()
+process_v2()  # ✅ OK if it's actually version 2
+
+# ❌ Vague names
+data = fetch()
+info = get()
+temp = calculate()
+result = process()
+
+# ✅ CORRECT - Specific names
+account_data = fetch_account_data()
+category_info = get_category_metadata()
+temporary_rate_limit_delay = calculate_backoff_delay()
+categorization_result = process_account_categorization()
 ```
 
 **String Quotes**:
