@@ -1118,4 +1118,694 @@ services:
 
 ---
 
+## Phase 7: Bulk Account Management Implementation
+
+This phase adds the critical feature of unfollowing accounts in bulk - either entire categories or selected accounts with pagination persistence.
+
+### 7.1 X API Unfollow Client
+
+Add unfollow functionality to the X API client:
+
+```python
+# backend/api/x_client.py (add to existing XClient class)
+
+class XClient:
+    # ... existing methods ...
+
+    async def unfollow_user(self, target_user_id: str) -> bool:
+        """Unfollow a user by their ID.
+
+        Args:
+            target_user_id: The X user ID to unfollow
+
+        Returns:
+            True if successful, False otherwise
+
+        Raises:
+            XAPIError: If API call fails
+        """
+        # X API v2 endpoint: DELETE /2/users/:source_user_id/following/:target_user_id
+        url = f"{self.base_url}/users/{self.authenticated_user_id}/following/{target_user_id}"
+
+        try:
+            response = await self.client.delete(
+                url,
+                headers=self.headers,
+                timeout=30.0
+            )
+
+            if response.status_code == 200:
+                return True
+            elif response.status_code == 429:
+                # Rate limit exceeded
+                reset_time = response.headers.get("x-rate-limit-reset")
+                raise XAPIError(
+                    f"Rate limit exceeded. Resets at {reset_time}",
+                    details={"reset_time": reset_time}
+                )
+            else:
+                logger.error(f"Unfollow failed: {response.status_code} - {response.text}")
+                return False
+
+        except httpx.HTTPError as e:
+            raise XAPIError(f"Failed to unfollow user {target_user_id}: {e}") from e
+
+    async def bulk_unfollow(
+        self,
+        user_ids: List[str],
+        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        rate_limit_delay: float = 1.2  # ~50 requests per 15min = 1.2s between requests
+    ) -> Dict[str, Any]:
+        """Unfollow multiple users with rate limiting.
+
+        Args:
+            user_ids: List of user IDs to unfollow
+            progress_callback: Optional callback for progress updates
+            rate_limit_delay: Seconds to wait between requests
+
+        Returns:
+            Dict with success_count, failed_accounts, total_time
+        """
+        results = {
+            "success_count": 0,
+            "failed_accounts": [],
+            "total_time": 0
+        }
+
+        start_time = time.time()
+
+        for idx, user_id in enumerate(user_ids):
+            try:
+                success = await self.unfollow_user(user_id)
+
+                if success:
+                    results["success_count"] += 1
+                else:
+                    results["failed_accounts"].append({
+                        "user_id": user_id,
+                        "error": "Unfollow returned false"
+                    })
+
+                # Progress callback
+                if progress_callback:
+                    await progress_callback(idx + 1, len(user_ids), user_id)
+
+                # Rate limiting: wait between requests
+                if idx < len(user_ids) - 1:  # Don't wait after last request
+                    await asyncio.sleep(rate_limit_delay)
+
+            except XAPIError as e:
+                results["failed_accounts"].append({
+                    "user_id": user_id,
+                    "error": str(e)
+                })
+
+                # If rate limit error, wait longer
+                if "rate limit" in str(e).lower():
+                    logger.warning(f"Rate limit hit, waiting 60 seconds...")
+                    await asyncio.sleep(60)
+
+        results["total_time"] = time.time() - start_time
+        return results
+```
+
+### 7.2 Backend Unfollow Service
+
+Create a service to manage unfollow operations:
+
+```python
+# backend/core/services/unfollow_service.py
+
+import uuid
+from typing import List, Dict, Optional, Callable
+from datetime import datetime, timedelta
+from backend.api.x_client import XClient
+from backend.db.repositories.account_repository import AccountRepository
+from backend.db.repositories.unfollow_history_repository import UnfollowHistoryRepository
+
+class UnfollowService:
+    """Service for managing bulk unfollow operations."""
+
+    def __init__(
+        self,
+        x_client: XClient,
+        account_repo: AccountRepository,
+        history_repo: UnfollowHistoryRepository
+    ):
+        self._x_client = x_client
+        self._accounts = account_repo
+        self._history = history_repo
+        self._active_jobs: Dict[str, Dict] = {}
+
+    async def unfollow_category(
+        self,
+        category_name: str,
+        progress_callback: Optional[Callable] = None
+    ) -> str:
+        """Unfollow all accounts in a category.
+
+        Args:
+            category_name: Name of category to unfollow
+            progress_callback: Optional async callback for progress updates
+
+        Returns:
+            Job ID for tracking progress
+        """
+        # Get all accounts in category
+        accounts = self._accounts.get_by_category(category_name)
+
+        if not accounts:
+            raise ValueError(f"No accounts found in category '{category_name}'")
+
+        # Create job
+        job_id = str(uuid.uuid4())
+        self._active_jobs[job_id] = {
+            "status": "running",
+            "category": category_name,
+            "total": len(accounts),
+            "current": 0,
+            "success": 0,
+            "failed": []
+        }
+
+        # Extract user IDs
+        user_ids = [acc.id for acc in accounts]
+
+        # Create progress wrapper
+        async def track_progress(current: int, total: int, user_id: str):
+            self._active_jobs[job_id]["current"] = current
+            if progress_callback:
+                await progress_callback(current, total, user_id)
+
+        # Execute bulk unfollow
+        results = await self._x_client.bulk_unfollow(user_ids, track_progress)
+
+        # Update job status
+        self._active_jobs[job_id]["status"] = "complete"
+        self._active_jobs[job_id]["success"] = results["success_count"]
+        self._active_jobs[job_id]["failed"] = results["failed_accounts"]
+
+        # Save to history
+        await self._history.save({
+            "job_id": job_id,
+            "operation": "unfollow_category",
+            "category": category_name,
+            "account_ids": user_ids,
+            "success_count": results["success_count"],
+            "failed_count": len(results["failed_accounts"]),
+            "timestamp": datetime.utcnow()
+        })
+
+        return job_id
+
+    async def unfollow_bulk(
+        self,
+        account_ids: List[str],
+        progress_callback: Optional[Callable] = None
+    ) -> str:
+        """Unfollow selected accounts in bulk.
+
+        Args:
+            account_ids: List of account IDs to unfollow
+            progress_callback: Optional async callback for progress updates
+
+        Returns:
+            Job ID for tracking progress
+        """
+        # Create job
+        job_id = str(uuid.uuid4())
+        self._active_jobs[job_id] = {
+            "status": "running",
+            "total": len(account_ids),
+            "current": 0,
+            "success": 0,
+            "failed": []
+        }
+
+        # Create progress wrapper
+        async def track_progress(current: int, total: int, user_id: str):
+            self._active_jobs[job_id]["current"] = current
+            if progress_callback:
+                await progress_callback(current, total, user_id)
+
+        # Execute bulk unfollow
+        results = await self._x_client.bulk_unfollow(account_ids, track_progress)
+
+        # Update job status
+        self._active_jobs[job_id]["status"] = "complete"
+        self._active_jobs[job_id]["success"] = results["success_count"]
+        self._active_jobs[job_id]["failed"] = results["failed_accounts"]
+
+        # Save to history
+        await self._history.save({
+            "job_id": job_id,
+            "operation": "unfollow_bulk",
+            "account_ids": account_ids,
+            "success_count": results["success_count"],
+            "failed_count": len(results["failed_accounts"]),
+            "timestamp": datetime.utcnow()
+        })
+
+        return job_id
+
+    def get_job_status(self, job_id: str) -> Optional[Dict]:
+        """Get status of unfollow job."""
+        return self._active_jobs.get(job_id)
+
+    async def get_recent_history(self, hours: int = 24) -> List[Dict]:
+        """Get recent unfollow operations for undo feature."""
+        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        return await self._history.get_since(cutoff)
+
+    async def refollow_batch(self, account_ids: List[str]) -> Dict:
+        """Refollow accounts (undo feature).
+
+        Note: This requires using the X API follow endpoint.
+        """
+        # Implementation similar to bulk_unfollow but using follow endpoint
+        # Left as exercise - similar pattern to unfollow
+        pass
+```
+
+### 7.3 FastAPI Endpoints
+
+Add the unfollow endpoints to your API:
+
+```python
+# backend/routes/unfollow.py
+
+from fastapi import APIRouter, BackgroundTasks, Depends, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
+from typing import List
+from backend.core.services.unfollow_service import UnfollowService
+from backend.dependencies import get_unfollow_service
+
+router = APIRouter(prefix="/api/unfollow", tags=["unfollow"])
+
+class BulkUnfollowRequest(BaseModel):
+    """Request model for bulk unfollow."""
+    account_ids: List[str]
+
+class RefollowRequest(BaseModel):
+    """Request model for refollow."""
+    account_ids: List[str]
+
+@router.post("/category/{category_name}")
+async def unfollow_category(
+    category_name: str,
+    background_tasks: BackgroundTasks,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """Unfollow all accounts in a category.
+
+    Returns job_id for tracking progress via WebSocket or polling.
+    """
+    job_id = await service.unfollow_category(category_name)
+
+    return {
+        "job_id": job_id,
+        "message": f"Unfollow operation started for category '{category_name}'"
+    }
+
+@router.post("/bulk")
+async def unfollow_bulk(
+    request: BulkUnfollowRequest,
+    background_tasks: BackgroundTasks,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """Unfollow selected accounts in bulk.
+
+    Returns job_id for tracking progress.
+    """
+    job_id = await service.unfollow_bulk(request.account_ids)
+
+    return {
+        "job_id": job_id,
+        "message": f"Unfollow operation started for {len(request.account_ids)} accounts"
+    }
+
+@router.get("/{job_id}/status")
+async def get_unfollow_status(
+    job_id: str,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """Get status of unfollow operation."""
+    status = service.get_job_status(job_id)
+
+    if not status:
+        return {"error": "Job not found"}, 404
+
+    return status
+
+@router.get("/history")
+async def get_unfollow_history(
+    hours: int = 24,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """Get recent unfollow operations (for undo feature)."""
+    history = await service.get_recent_history(hours)
+    return {"history": history}
+
+@router.post("/refollow")
+async def refollow_batch(
+    request: RefollowRequest,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """Refollow accounts (undo feature)."""
+    results = await service.refollow_batch(request.account_ids)
+    return results
+
+@router.websocket("/ws/{job_id}")
+async def websocket_unfollow_progress(
+    websocket: WebSocket,
+    job_id: str,
+    service: UnfollowService = Depends(get_unfollow_service)
+):
+    """WebSocket endpoint for real-time unfollow progress."""
+    await websocket.accept()
+
+    try:
+        while True:
+            status = service.get_job_status(job_id)
+
+            if not status:
+                await websocket.send_json({"error": "Job not found"})
+                break
+
+            await websocket.send_json(status)
+
+            if status["status"] == "complete":
+                break
+
+            await asyncio.sleep(0.5)  # Update every 500ms
+
+    except WebSocketDisconnect:
+        logger.info(f"Client disconnected from unfollow progress WebSocket")
+```
+
+### 7.4 Streamlit UI - Bulk Selection
+
+Add bulk selection with pagination persistence:
+
+```python
+# streamlit_app/components/bulk_selector.py
+
+import streamlit as st
+from typing import List, Set
+
+class BulkSelector:
+    """Component for bulk selection with pagination persistence."""
+
+    def __init__(self, session_key: str = "selected_accounts"):
+        self.session_key = session_key
+
+        # Initialize session state
+        if self.session_key not in st.session_state:
+            st.session_state[self.session_key] = set()
+
+    def render(self, accounts: List[dict], page_size: int = 20):
+        """Render bulk selector UI with pagination.
+
+        Args:
+            accounts: List of account dicts with 'id', 'username', 'name', etc.
+            page_size: Number of accounts per page
+        """
+        # Get current selection
+        selected: Set[str] = st.session_state[self.session_key]
+
+        # Pagination
+        total_pages = (len(accounts) + page_size - 1) // page_size
+
+        if "current_page" not in st.session_state:
+            st.session_state.current_page = 0
+
+        # Selection controls
+        col1, col2, col3 = st.columns([2, 2, 3])
+
+        with col1:
+            if st.button("✓ Select All on Page"):
+                page_accounts = accounts[
+                    st.session_state.current_page * page_size:
+                    (st.session_state.current_page + 1) * page_size
+                ]
+                for acc in page_accounts:
+                    selected.add(acc["id"])
+                st.rerun()
+
+        with col2:
+            if st.button("Clear Selection"):
+                selected.clear()
+                st.rerun()
+
+        with col3:
+            st.markdown(f"**Selected: {len(selected)} accounts** across all pages")
+
+        st.markdown("---")
+
+        # Display accounts for current page
+        start_idx = st.session_state.current_page * page_size
+        end_idx = min(start_idx + page_size, len(accounts))
+        page_accounts = accounts[start_idx:end_idx]
+
+        for account in page_accounts:
+            col1, col2 = st.columns([1, 20])
+
+            with col1:
+                is_selected = account["id"] in selected
+                if st.checkbox("", value=is_selected, key=f"cb_{account['id']}"):
+                    selected.add(account["id"])
+                else:
+                    selected.discard(account["id"])
+
+            with col2:
+                st.markdown(f"""
+                **[@{account['username']}](https://x.com/{account['username']})** {account['name']}
+                👥 {account.get('followers_count', 0):,} followers
+                {account.get('description', '')[:100]}...
+                """)
+
+            st.markdown("---")
+
+        # Pagination controls
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col1:
+            if st.button("← Previous") and st.session_state.current_page > 0:
+                st.session_state.current_page -= 1
+                st.rerun()
+
+        with col2:
+            st.markdown(f"Page {st.session_state.current_page + 1} of {total_pages}")
+
+        with col3:
+            if st.button("Next →") and st.session_state.current_page < total_pages - 1:
+                st.session_state.current_page += 1
+                st.rerun()
+
+        # Action buttons
+        st.markdown("---")
+
+        if len(selected) > 0:
+            col1, col2, col3 = st.columns([2, 2, 2])
+
+            with col1:
+                if st.button(f"⚠️ Unfollow Selected ({len(selected)})", type="primary"):
+                    self.show_confirmation_dialog(list(selected))
+
+            with col2:
+                if st.button("Export Selection"):
+                    self.export_selection(accounts, selected)
+
+        return selected
+
+    def show_confirmation_dialog(self, account_ids: List[str]):
+        """Show confirmation dialog before unfollowing."""
+        st.session_state.show_unfollow_confirm = True
+        st.session_state.accounts_to_unfollow = account_ids
+
+    def export_selection(self, all_accounts: List[dict], selected_ids: Set[str]):
+        """Export selected accounts to CSV."""
+        import pandas as pd
+
+        selected_accounts = [acc for acc in all_accounts if acc["id"] in selected_ids]
+        df = pd.DataFrame(selected_accounts)
+
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="Download CSV",
+            data=csv,
+            file_name="selected_accounts.csv",
+            mime="text/csv"
+        )
+
+
+# streamlit_app/pages/3_Category_Details.py
+
+import streamlit as st
+import requests
+from components.bulk_selector import BulkSelector
+
+st.set_page_config(page_title="Category Details", layout="wide")
+
+# Get category from query params
+category_name = st.query_params.get("category")
+
+if not category_name:
+    st.error("No category selected")
+    st.stop()
+
+st.title(f"📁 {category_name}")
+
+# Fetch accounts in category
+response = requests.get(f"http://localhost:8000/api/categories/{category_name}/accounts")
+accounts = response.json()
+
+st.markdown(f"**{len(accounts)} accounts** in this category")
+
+# Show unfollow all button
+if st.button(f"⚠️ Unfollow All {len(accounts)} Accounts", type="primary"):
+    st.session_state.show_category_unfollow_confirm = True
+
+# Confirmation dialog for unfollow all
+if st.session_state.get("show_category_unfollow_confirm"):
+    with st.expander("⚠️ Confirm Unfollow All", expanded=True):
+        st.warning(f"""
+        You are about to unfollow **all {len(accounts)} accounts** in "{category_name}".
+
+        This action will:
+        - Unfollow {len(accounts)} accounts on X
+        - Take approximately {len(accounts) * 1.2 / 60:.1f} minutes (rate limiting)
+        - Remove these accounts from your X following list
+
+        ⚠️ This action cannot be easily undone.
+        """)
+
+        confirm = st.checkbox("I understand and want to proceed")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("Cancel"):
+                st.session_state.show_category_unfollow_confirm = False
+                st.rerun()
+
+        with col2:
+            if st.button(f"⚠️ Unfollow All {len(accounts)}", disabled=not confirm):
+                # Trigger unfollow
+                response = requests.post(
+                    f"http://localhost:8000/api/unfollow/category/{category_name}"
+                )
+                job_data = response.json()
+                st.session_state.unfollow_job_id = job_data["job_id"]
+                st.session_state.show_category_unfollow_confirm = False
+                st.rerun()
+
+st.markdown("---")
+
+# Bulk selector
+st.subheader("Select Individual Accounts")
+selector = BulkSelector(session_key=f"selected_{category_name}")
+selected = selector.render(accounts)
+
+# Show unfollow confirmation for bulk selection
+if st.session_state.get("show_unfollow_confirm"):
+    account_ids = st.session_state.accounts_to_unfollow
+
+    with st.expander("⚠️ Confirm Bulk Unfollow", expanded=True):
+        st.warning(f"""
+        You have selected **{len(account_ids)} accounts** to unfollow.
+
+        Estimated time: ~{len(account_ids) * 1.2 / 60:.1f} minutes
+        """)
+
+        confirm = st.checkbox("I understand this action cannot be easily undone")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("Cancel"):
+                st.session_state.show_unfollow_confirm = False
+                st.rerun()
+
+        with col2:
+            if st.button(f"⚠️ Unfollow {len(account_ids)} Accounts", disabled=not confirm):
+                # Trigger bulk unfollow
+                response = requests.post(
+                    "http://localhost:8000/api/unfollow/bulk",
+                    json={"account_ids": account_ids}
+                )
+                job_data = response.json()
+                st.session_state.unfollow_job_id = job_data["job_id"]
+                st.session_state.show_unfollow_confirm = False
+                st.rerun()
+
+# Show progress if unfollow job is running
+if st.session_state.get("unfollow_job_id"):
+    job_id = st.session_state.unfollow_job_id
+
+    with st.container():
+        st.subheader("⏳ Unfollow Progress")
+
+        progress_placeholder = st.empty()
+        status_placeholder = st.empty()
+
+        # Poll for status
+        response = requests.get(f"http://localhost:8000/api/unfollow/{job_id}/status")
+        status = response.json()
+
+        if status["status"] == "running":
+            progress = status["current"] / status["total"]
+            progress_placeholder.progress(progress)
+            status_placeholder.markdown(f"""
+            **Unfollowing accounts...** {status['current']}/{status['total']}
+
+            ✓ Successful: {status['success']}
+            ⚠️ Failed: {len(status['failed'])}
+            """)
+        elif status["status"] == "complete":
+            st.success(f"""
+            ✓ **Unfollow Complete!**
+
+            Successfully unfollowed: {status['success']} accounts
+            Failed: {len(status['failed'])} accounts
+            """)
+
+            if status['failed']:
+                with st.expander("View failed accounts"):
+                    st.json(status['failed'])
+
+            # Clear job ID
+            del st.session_state.unfollow_job_id
+```
+
+### 7.5 Database Schema for Unfollow History
+
+Add table for tracking unfollow operations:
+
+```python
+# backend/db/models.py (add to existing models)
+
+from sqlalchemy import Column, String, Integer, DateTime, JSON
+from datetime import datetime
+
+class UnfollowHistory(Base):
+    """Track unfollow operations for undo feature."""
+
+    __tablename__ = "unfollow_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    job_id = Column(String, unique=True, nullable=False)
+    operation = Column(String, nullable=False)  # 'unfollow_category' or 'unfollow_bulk'
+    category = Column(String, nullable=True)  # If category unfollow
+    account_ids = Column(JSON, nullable=False)  # List of account IDs
+    success_count = Column(Integer, nullable=False)
+    failed_count = Column(Integer, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<UnfollowHistory {self.job_id} - {self.operation}>"
+```
+
+---
+
 **Ready to start coding!** 🚀

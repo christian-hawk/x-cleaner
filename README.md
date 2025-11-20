@@ -13,7 +13,9 @@ X-Cleaner helps you understand your X network by automatically categorizing the 
 - 🤖 **AI-Powered Categorization**: Grok discovers natural categories from your network
 - 📊 **Visual Analytics**: Charts, graphs, and statistics at a glance
 - 🏆 **Top Accounts**: View top 5 accounts from each category
-- 🔄 **Real-time Updates**: Watch scans progress in real-time via WebSocket
+- 🧹 **Bulk Account Management**: Unfollow entire categories or select accounts in bulk with pagination persistence
+- 🔄 **Real-time Updates**: Watch scans and unfollow operations progress in real-time via WebSocket
+- ↩️ **Undo Operations**: 24-hour buffer to refollow accidentally unfollowed accounts
 - 📄 **Multiple Export Formats**: JSON, CSV, and PDF reports
 - 💾 **Local Caching**: Avoid redundant API calls with SQLite storage
 - ⚡ **Fast & Efficient**: Async operations and background task processing

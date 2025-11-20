@@ -22,7 +22,8 @@ This project aims to build a tool that scans X (Twitter) accounts a user follows
 3. **AI-Powered Categorization**: Use Grok API to intelligently categorize accounts
 4. **Interactive Web Dashboard**: Rich web UI for exploring categories, statistics, and top accounts
 5. **Visual Analytics**: Charts, graphs, and interactive visualizations
-6. **Export Functionality**: Save results in multiple formats (JSON, CSV, PDF report)
+6. **Bulk Account Management**: Unfollow entire categories or select multiple accounts with persistent selection across pagination
+7. **Export Functionality**: Save results in multiple formats (JSON, CSV, PDF report)
 
 ---
 
@@ -597,7 +598,181 @@ The web dashboard is the primary interface for viewing and exploring your catego
    - Activity patterns
    - Best times/days for each category
 
-### 7.6 Settings & Management
+### 7.6 Bulk Account Management
+
+The bulk account management feature allows users to efficiently clean up their X following list by unfollowing entire categories or selecting specific accounts in bulk.
+
+#### 7.6.1 Unfollow Entire Category
+
+**Category Actions Menu:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AI/ML Researchers & Practitioners          [87 accounts]  │
+│  ━━━━━━━━━━━━━━━━━━━━ 10.3%                               │
+│                                                             │
+│  🏆 Top Accounts:                                          │
+│  1. @researcher1 (2.3M) • AI Research Lead                │
+│  2. @mlexpert (1.8M) • ML Engineer                        │
+│  3. @aiethics (950K) • AI Safety Researcher               │
+│                                                             │
+│  [View all] [Bulk Select] [⚠️ Unfollow All]                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Unfollow All Confirmation Dialog:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ⚠️  Unfollow Entire Category?                             │
+│                                                             │
+│  You are about to unfollow all 87 accounts in:            │
+│  "AI/ML Researchers & Practitioners"                       │
+│                                                             │
+│  This action will:                                         │
+│  • Unfollow 87 accounts on X                              │
+│  • Take approximately 2-3 minutes (rate limiting)          │
+│  • Remove these accounts from your X following list        │
+│                                                             │
+│  ⚠️  This action cannot be easily undone.                  │
+│                                                             │
+│  [ ] I understand and want to proceed                      │
+│                                                             │
+│  [Cancel]                [⚠️ Unfollow All 87 Accounts]     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Progress Tracking:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Unfollowing Accounts...                                   │
+│                                                             │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░  70% (61/87 unfollowed)            │
+│                                                             │
+│  ✓ Successfully unfollowed: 61 accounts                   │
+│  ⏳ In progress: @current_account                          │
+│  ⚠️  Skipped (errors): 0 accounts                          │
+│                                                             │
+│  Rate limit: 48 requests remaining (resets in 12 min)     │
+│  Estimated time: 45 seconds                                │
+│                                                             │
+│  [Pause] [Cancel]                                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 7.6.2 Bulk Selection with Pagination Persistence
+
+**Category Detail View with Selection:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AI/ML Researchers & Practitioners - 87 accounts           │
+│                                                             │
+│  [✓ Select All on Page] [Clear Selection]                 │
+│  Selected: 23 accounts across all pages                    │
+│                                                             │
+│  Search: [___________] 🔍  Sort: [Followers ▼]            │
+├─────────────────────────────────────────────────────────────┤
+│  [✓] @researcher1         2.3M followers  ✓               │
+│      AI Research Lead • Posts about ML...                  │
+│      Last active: 2 hours ago                              │
+├─────────────────────────────────────────────────────────────┤
+│  [ ] @mlexpert           1.8M followers  ✓                │
+│      ML Engineer • Building AI systems...                  │
+│      Last active: 1 day ago                                │
+├─────────────────────────────────────────────────────────────┤
+│  [✓] @aiethics           950K followers                    │
+│      AI Safety Researcher • Ethical AI...                  │
+│      Last active: 3 hours ago                              │
+├─────────────────────────────────────────────────────────────┤
+│  [✓] @deeplearning       720K followers  ✓                │
+│      Deep Learning Expert • Teaching...                    │
+│      Last active: 5 hours ago                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Showing 1-20 of 87    [< Previous]  [Next >]  [3/5]      │
+│                                                             │
+│  [Unfollow Selected (23)] [Export Selection] [Clear]      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Selection Features:**
+- ✅ **Persistent Selection**: Selected accounts remain selected when navigating between pages
+- ✅ **Visual Counter**: Shows total selected accounts across all pages
+- ✅ **Select All on Page**: Quick select all accounts on current page
+- ✅ **Clear Selection**: Reset all selections
+- ✅ **Selection Preview**: Shows selected count before action
+- ✅ **Multi-page Selection**: Can select accounts from page 1, go to page 3, select more, etc.
+
+**Bulk Unfollow Confirmation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ⚠️  Unfollow Selected Accounts?                           │
+│                                                             │
+│  You have selected 23 accounts to unfollow:               │
+│                                                             │
+│  From "AI/ML Researchers & Practitioners":                 │
+│  • @researcher1                                            │
+│  • @aiethics                                               │
+│  • @deeplearning                                           │
+│  • ... and 20 more                                         │
+│                                                             │
+│  [View Full List]                                          │
+│                                                             │
+│  This will unfollow 23 accounts on X.                     │
+│  Estimated time: ~1 minute                                 │
+│                                                             │
+│  [ ] I understand this action cannot be easily undone      │
+│                                                             │
+│  [Cancel]              [⚠️ Unfollow 23 Accounts]           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 7.6.3 Unfollow Results & Rollback
+
+**Results Summary:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ✓ Unfollow Operation Complete                            │
+│                                                             │
+│  Results:                                                  │
+│  ✓ Successfully unfollowed: 22 accounts                   │
+│  ⚠️  Failed (rate limit): 1 account                        │
+│                                                             │
+│  Failed accounts:                                          │
+│  • @researcher1 - Rate limit exceeded                      │
+│    [Retry Later]                                           │
+│                                                             │
+│  Your X following list has been updated.                  │
+│  Next scan will reflect these changes.                     │
+│                                                             │
+│  [View Updated Category] [Scan Again] [Close]             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Error Handling:**
+- Rate limit detection with retry suggestions
+- Failed account tracking
+- Partial success handling
+- Detailed error messages
+
+#### 7.6.4 Undo/Refollow Feature (Optional)
+
+**Undo Buffer:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Recent Unfollow Actions                                   │
+│                                                             │
+│  📝 5 minutes ago: Unfollowed 23 accounts                  │
+│     from "AI/ML Researchers"                               │
+│     [View List] [⟲ Refollow All]                          │
+│                                                             │
+│  📝 2 hours ago: Unfollowed entire category (87 accounts)  │
+│     "Crypto Influencers"                                   │
+│     [View List] [⟲ Refollow All]                          │
+│                                                             │
+│  Note: Undo is available for 24 hours after unfollow      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 7.7 Settings & Management
 
 **Scan Management:**
 - Trigger new scan
@@ -622,7 +797,7 @@ The web dashboard is the primary interface for viewing and exploring your catego
 - Default filters
 - Privacy settings
 
-### 7.7 Real-time Scan Progress
+### 7.8 Real-time Scan Progress
 
 **During Scan:**
 ```
@@ -645,14 +820,14 @@ The web dashboard is the primary interface for viewing and exploring your catego
 - ETA calculation
 - Pause/resume capability
 
-### 7.8 Mobile Responsiveness
+### 7.9 Mobile Responsiveness
 
 - Fully responsive design
 - Mobile-optimized layouts
 - Touch-friendly interactions
 - Progressive Web App (PWA) support
 
-### 7.9 Technology Choices
+### 7.10 Technology Choices
 
 **Option 1: React + FastAPI (Recommended for Production)**
 
@@ -695,7 +870,7 @@ The web dashboard is the primary interface for viewing and exploring your catego
 - **Start with Streamlit** for quick MVP and validation
 - **Migrate to React** once proven valuable and need more features
 
-### 7.10 API Endpoints (Backend)
+### 7.11 API Endpoints (Backend)
 
 **GET /api/stats**
 - Returns summary statistics
@@ -724,6 +899,29 @@ The web dashboard is the primary interface for viewing and exploring your catego
 
 **GET /api/export**
 - Export data (JSON/CSV)
+
+**POST /api/unfollow/category/{category_name}**
+- Unfollow all accounts in a category
+- Returns unfollow job ID for tracking
+
+**POST /api/unfollow/bulk**
+- Request body: `{"account_ids": ["123", "456", ...]}`
+- Unfollow selected accounts in bulk
+- Returns unfollow job ID
+
+**GET /api/unfollow/{job_id}/status**
+- Get unfollow operation progress
+- Returns: current, total, success_count, failed_accounts
+
+**WebSocket /ws/unfollow/{job_id}**
+- Real-time unfollow progress updates
+
+**GET /api/unfollow/history**
+- Get recent unfollow operations (for undo feature)
+
+**POST /api/refollow/batch**
+- Request body: `{"account_ids": ["123", "456", ...]}`
+- Refollow accounts (undo feature)
 
 ---
 
@@ -840,7 +1038,48 @@ The web dashboard is the primary interface for viewing and exploring your catego
 - Deployment guide
 - Example configurations
 
-### Phase 7: Advanced Features (Optional - Week 5+)
+### Phase 7: Bulk Account Management (Week 5)
+
+**Tasks:**
+1. Implement X API unfollow endpoint client
+2. Add rate limiting for unfollow operations (respect X API limits)
+3. Create backend unfollow service with batch processing
+4. Implement unfollow job queue and progress tracking
+5. Add WebSocket support for real-time unfollow progress
+6. Create unfollow history tracking for undo feature
+7. Build UI for "Unfollow All Category" with confirmation dialog
+8. Implement bulk selection UI with pagination persistence
+9. Add session state management for multi-page selection
+10. Create unfollow progress modal with rate limit display
+11. Implement error handling and retry logic
+12. Add unfollow results summary with failed accounts list
+13. Build optional undo/refollow feature with 24h buffer
+14. Test bulk unfollow with various category sizes
+
+**Key Considerations:**
+- **X API Rate Limits**:
+  - Unfollow endpoint: ~50 requests per 15 minutes
+  - Must implement careful rate limiting and queuing
+  - Show accurate ETA based on rate limits
+- **State Persistence**:
+  - Use session state (Streamlit) or Redux (React) for selection
+  - Persist selection across pagination
+  - Clear selection after successful unfollow
+- **User Safety**:
+  - Require explicit confirmation with checkbox
+  - Show detailed preview before action
+  - Provide undo buffer for accidental unfollows
+  - Log all unfollow operations for audit trail
+
+**Deliverables:**
+- Fully functional unfollow entire category feature
+- Bulk selection with pagination persistence
+- Real-time progress tracking with rate limit display
+- Error handling and retry mechanism
+- Optional undo/refollow feature
+- Comprehensive testing with different scenarios
+
+### Phase 8: Advanced Features (Optional - Week 6+)
 
 **Tasks:**
 1. Scheduled automatic scans (cron jobs)
