@@ -1,0 +1,194 @@
+{
+  "name": "X-Cleaner",
+  "description": "AI-powered X (Twitter) account scanner and categorization tool",
+  "version": "1.0.0",
+
+  "context": {
+    "project_type": "Python Backend + Web Dashboard",
+    "stack": [
+      "Python 3.11+",
+      "FastAPI (Backend API)",
+      "Streamlit (Web Dashboard MVP)",
+      "SQLite (Data Storage)",
+      "X API v2 (Data Collection)",
+      "xAI Grok (AI Categorization)"
+    ],
+    "architecture": "4-layer: Presentation → API → Business Logic → Data",
+    "key_files": [
+      "PROJECT_PLAN.md - Complete project plan and features",
+      "ARCHITECTURE.md - System architecture and design patterns",
+      "CODE_CONVENTIONS.md - Code quality standards (MANDATORY)",
+      "IMPLEMENTATION_ROADMAP.md - Implementation guide with examples"
+    ]
+  },
+
+  "codeConventions": {
+    "style": "PEP 8 (MANDATORY)",
+    "formatting": {
+      "line_length": 88,
+      "indent": "4 spaces",
+      "string_quotes": "double quotes",
+      "imports_location": "ALWAYS at top of file after docstring"
+    },
+    "naming": {
+      "classes": "PascalCase",
+      "functions": "snake_case (verbs)",
+      "variables": "snake_case (EXTREMELY self-explanatory)",
+      "constants": "UPPER_SNAKE_CASE",
+      "booleans": "is_, has_, should_, can_, will_ prefix",
+      "private": "leading underscore _name"
+    },
+    "forbidden": {
+      "abbreviations": "COMPLETELY FORBIDDEN (usr → user, acc → account, cat → category)",
+      "single_letters": "FORBIDDEN except i, j, k (loops), e (exceptions), _ (unused)",
+      "vague_names": "FORBIDDEN (data, info, temp, manager, handler)",
+      "imports_in_functions": "NEVER (except circular dependency workarounds)"
+    },
+    "limits": {
+      "file_max_lines": 800,
+      "file_warning_lines": 500,
+      "function_max_lines": 100,
+      "function_warning_lines": 60,
+      "cyclomatic_complexity_max": 15,
+      "cyclomatic_complexity_target": 10
+    },
+    "principles": {
+      "dry": "NEVER duplicate logic - extract into reusable functions",
+      "self_documenting": "Names must be so clear that comments become unnecessary",
+      "comments": "Code smell - use ONLY for complex algorithms, business logic WHY, API quirks",
+      "solid": "Follow all 5 SOLID principles",
+      "type_hints": "ALWAYS use type hints for function signatures"
+    }
+  },
+
+  "fileStructure": {
+    "backend": {
+      "main.py": "FastAPI app entry point",
+      "config.py": "Settings (Pydantic BaseSettings)",
+      "models.py": "Pydantic data models",
+      "database.py": "SQLite database manager",
+      "api/": {
+        "routes.py": "FastAPI route definitions",
+        "websockets.py": "WebSocket handlers",
+        "x_client.py": "X API client",
+        "grok_client.py": "Grok API client"
+      },
+      "core/": {
+        "scanner.py": "Scanning logic",
+        "categorizer.py": "Categorization engine",
+        "statistics.py": "Statistical analysis"
+      },
+      "db/": {
+        "manager.py": "Database connection manager",
+        "models.py": "SQLAlchemy ORM models",
+        "repositories/": "Repository pattern implementations"
+      }
+    },
+    "streamlit_app": {
+      "app.py": "Main dashboard",
+      "pages/": "Multi-page app sections",
+      "components/": "Reusable components"
+    }
+  },
+
+  "tooling": {
+    "linters": {
+      "black": {
+        "line_length": 88,
+        "command": "black ."
+      },
+      "isort": {
+        "profile": "black",
+        "command": "isort ."
+      },
+      "mypy": {
+        "config": ".mypy.ini",
+        "command": "mypy backend/"
+      },
+      "pylint": {
+        "command": "pylint backend/"
+      },
+      "radon": {
+        "complexity": "radon cc backend/ -a -nb",
+        "maintainability": "radon mi backend/ -s"
+      }
+    },
+    "testing": {
+      "framework": "pytest",
+      "coverage": "pytest --cov=backend --cov-report=html --cov-report=term",
+      "async": "pytest-asyncio"
+    }
+  },
+
+  "apiKeys": {
+    "required": [
+      "X_API_BEARER_TOKEN - X API Basic Plan ($200/month)",
+      "X_USER_ID - Your X user ID",
+      "XAI_API_KEY - xAI Grok API key"
+    ],
+    "storage": ".env file (NEVER commit)"
+  },
+
+  "development": {
+    "setup": [
+      "python -m venv venv",
+      "source venv/bin/activate",
+      "pip install -r requirements.txt",
+      "cp .env.example .env",
+      "# Edit .env with your API keys"
+    ],
+    "run": {
+      "backend": "uvicorn backend.main:app --reload --port 8000",
+      "frontend": "streamlit run streamlit_app/app.py",
+      "urls": [
+        "Dashboard: http://localhost:8501",
+        "API Docs: http://localhost:8000/docs"
+      ]
+    }
+  },
+
+  "refactoringTriggers": {
+    "immediate_action_required": [
+      "Function > 100 lines → extract sub-functions",
+      "File > 800 lines → split into multiple modules",
+      "Cyclomatic complexity > 15 → simplify logic",
+      "Duplicate code in 2+ places → create shared function",
+      "Function with > 5 parameters → use object/dataclass",
+      "Nested if/else > 3 levels → use early returns, guard clauses",
+      "Class with > 10 methods → split responsibilities (SRP)"
+    ]
+  },
+
+  "designPatterns": {
+    "used": [
+      "Repository Pattern - Data access abstraction",
+      "Service Layer Pattern - Business logic encapsulation",
+      "Factory Pattern - Complex object creation",
+      "Strategy Pattern - Swappable algorithms (categorization)",
+      "Observer Pattern - WebSocket progress updates",
+      "Dependency Injection - Loosely coupled components"
+    ]
+  },
+
+  "testing": {
+    "pyramid": {
+      "unit": "70% - Fast, isolated, mock dependencies",
+      "integration": "20% - Real DB, mocked external APIs",
+      "e2e": "10% - Full system, slow"
+    },
+    "coverage_goals": {
+      "overall": "80%",
+      "core_business_logic": "90%",
+      "api_clients": "85%",
+      "repositories": "85%"
+    }
+  },
+
+  "costEstimation": {
+    "monthly": {
+      "x_api": "$200 (Basic Plan - required)",
+      "grok_api": "~$0.20 (negligible - ~$0.05 per 1000 accounts)",
+      "total": "~$200/month"
+    }
+  }
+}
