@@ -211,8 +211,14 @@ x-cleaner/
 │
 ├── data/                    # SQLite database
 ├── tests/                   # Unit tests
-└── PROJECT_PLAN.md          # Detailed project plan
+│
+├── PROJECT_PLAN.md          # Complete project plan
+├── IMPLEMENTATION_ROADMAP.md # Developer guide with code
+├── ARCHITECTURE.md          # System architecture & patterns
+└── CODE_CONVENTIONS.md      # Code quality standards
 ```
+
+See the **[Documentation](#documentation)** section below for detailed guides.
 
 ## Cost Estimation
 
@@ -232,7 +238,7 @@ x-cleaner/
 
 ## Development Roadmap
 
-See [PROJECT_PLAN.md](PROJECT_PLAN.md) for detailed implementation plan.
+See **[Documentation](#documentation)** section for complete planning and implementation guides.
 
 ### Phase 1: Foundation ✅
 - [x] Project setup
@@ -264,6 +270,50 @@ See [PROJECT_PLAN.md](PROJECT_PLAN.md) for detailed implementation plan.
 - [ ] Documentation
 - [ ] Error handling
 - [ ] Performance optimization
+
+### Phase 7: Bulk Account Management
+- [ ] Unfollow entire category feature
+- [ ] Bulk selection with pagination persistence
+- [ ] Real-time unfollow progress tracking
+- [ ] Undo/refollow buffer (24h)
+
+## Documentation
+
+Comprehensive planning and technical documentation:
+
+### 📋 Planning & Features
+- **[PROJECT_PLAN.md](PROJECT_PLAN.md)** - Complete project plan with 17 sections
+  - Feature specifications and UI mockups
+  - Emergent AI categorization approach
+  - Web dashboard design (FastAPI + Streamlit/React)
+  - Implementation phases and timeline
+  - Cost analysis and risk mitigation
+
+### 🛠️ Implementation Guide
+- **[IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)** - Developer implementation guide
+  - Step-by-step setup instructions
+  - Complete code examples (backend, frontend, API clients)
+  - Database schema and models
+  - Running instructions (development & production)
+  - Phase 7: Bulk unfollow implementation with UI code
+
+### 🏗️ Architecture & Patterns
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design patterns
+  - 4-layer architecture (Presentation/API/Business/Data)
+  - Design patterns (Repository, Service, Factory, Strategy, Observer, DI)
+  - Component structure and communication rules
+  - Error handling and logging strategies
+  - Testing strategy (unit/integration/e2e)
+  - Type system and API design principles
+
+### 📝 Code Quality Standards
+- **[CODE_CONVENTIONS.md](CODE_CONVENTIONS.md)** - Code style and quality guidelines
+  - Clean Code principles (DRY, self-documenting code)
+  - **Mandatory limits**: Files ≤500 lines, Functions ≤60 lines, Complexity ≤15
+  - PEP 8 style guide (imports at top, formatting rules)
+  - Naming conventions (EXTREMELY self-explanatory, NO abbreviations)
+  - Forbidden patterns and refactoring triggers
+  - Code review checklist
 
 ## Architecture
 
@@ -332,7 +382,7 @@ See [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📖 [Full Documentation](PROJECT_PLAN.md)
+- 📖 [Full Documentation](#documentation)
 - 🐛 [Report Issues](https://github.com/yourusername/x-cleaner/issues)
 - 💬 [Discussions](https://github.com/yourusername/x-cleaner/discussions)
 
