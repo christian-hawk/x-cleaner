@@ -4,17 +4,19 @@ An intelligent tool to scan, categorize, and analyze X (Twitter) accounts you fo
 
 ## Overview
 
-X-Cleaner helps you understand your X network by automatically categorizing the accounts you follow and providing detailed statistics. Leveraging X API v2 for data collection and xAI's Grok for intelligent categorization, it delivers actionable insights into your social network.
+X-Cleaner helps you understand your X network by automatically categorizing the accounts you follow and providing detailed statistics through an interactive web dashboard. Leveraging X API v2 for data collection and xAI's Grok for intelligent categorization, it delivers actionable insights into your social network.
 
 ## Features
 
+- 🌐 **Interactive Web Dashboard**: Beautiful, responsive UI for exploring your network
 - 🔍 **Automated Scanning**: Fetch all accounts you follow via X API v2
-- 🤖 **AI-Powered Categorization**: Use Grok to intelligently categorize accounts
-- 📊 **Statistical Analysis**: Get detailed insights with category distribution and metrics
+- 🤖 **AI-Powered Categorization**: Grok discovers natural categories from your network
+- 📊 **Visual Analytics**: Charts, graphs, and statistics at a glance
 - 🏆 **Top Accounts**: View top 5 accounts from each category
-- 📄 **Multiple Export Formats**: JSON, CSV, and HTML reports
+- 🔄 **Real-time Updates**: Watch scans progress in real-time via WebSocket
+- 📄 **Multiple Export Formats**: JSON, CSV, and PDF reports
 - 💾 **Local Caching**: Avoid redundant API calls with SQLite storage
-- ⚡ **Fast & Efficient**: Batch processing and async operations
+- ⚡ **Fast & Efficient**: Async operations and background task processing
 
 ## Quick Statistics Example
 
@@ -113,7 +115,7 @@ Unlike traditional tools that force accounts into predefined categories, X-Clean
 
 5. **Initialize database**
    ```bash
-   x-cleaner init
+   python -m backend.database --init
    ```
 
 ## Configuration
@@ -128,80 +130,84 @@ X_USER_ID=your_user_id_here
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here
 
-# Optional Settings
+# Application Settings
 DATABASE_PATH=data/accounts.db
 BATCH_SIZE=100
 CACHE_EXPIRY_DAYS=7
+
+# Web Server (optional)
+HOST=0.0.0.0
+PORT=8000
 ```
 
 ## Usage
 
-### Basic Commands
+### Running the Web Dashboard
 
-**Scan and categorize your following accounts:**
+**Start the backend API server:**
 ```bash
-x-cleaner scan
+uvicorn backend.main:app --reload --port 8000
 ```
 
-**Generate report from cached data:**
+**Start the Streamlit dashboard (in a new terminal):**
 ```bash
-x-cleaner report
+streamlit run streamlit_app/app.py
 ```
 
-**Export to different formats:**
+**Open your browser:**
+- Dashboard: http://localhost:8501
+- API docs: http://localhost:8000/docs
+
+**From the web interface you can:**
+- Trigger scans and watch real-time progress
+- Browse discovered categories
+- Explore all accounts with search/filter
+- View interactive charts and analytics
+- Export data in multiple formats
+
+### CLI Commands (Alternative)
+
+**Scan via CLI:**
 ```bash
-x-cleaner export --format json
-x-cleaner export --format csv
-x-cleaner export --format html
+python -m backend.cli scan
 ```
 
-**Update only new follows:**
+**Export data:**
 ```bash
-x-cleaner update
+python -m backend.cli export --format json
+python -m backend.cli export --format csv
 ```
 
-**Show statistics:**
+**View statistics:**
 ```bash
-x-cleaner stats
-```
-
-**Clear cache:**
-```bash
-x-cleaner clear-cache
-```
-
-### Advanced Usage
-
-**Scan specific user:**
-```bash
-x-cleaner scan --user-id 12345678
-```
-
-**Interactive mode:**
-```bash
-x-cleaner interactive
-```
-
-**Custom categories:**
-```bash
-x-cleaner scan --categories-file custom_categories.json
+python -m backend.cli stats
 ```
 
 ## Project Structure
 
 ```
 x-cleaner/
-├── src/
-│   ├── main.py              # CLI entry point
+├── backend/                 # FastAPI backend
+│   ├── main.py              # API server entry point
 │   ├── api/                 # API clients
+│   │   ├── routes.py        # REST endpoints
+│   │   ├── websockets.py    # Real-time updates
 │   │   ├── x_client.py      # X API integration
-│   │   └── grok_client.py   # Grok API integration
-│   ├── analysis/            # Analysis logic
-│   │   ├── categorizer.py   # Categorization
-│   │   └── statistics.py    # Statistical analysis
-│   └── reporting/           # Report generation
-├── data/                    # Local database
-├── templates/               # HTML templates
+│   │   └── grok_client.py   # Grok AI integration
+│   ├── core/                # Core logic
+│   │   ├── scanner.py       # Scanning engine
+│   │   ├── categorizer.py   # AI categorization
+│   │   └── statistics.py    # Analytics
+│   └── cli/                 # CLI commands
+│
+├── streamlit_app/           # Web dashboard (Streamlit)
+│   ├── app.py               # Main dashboard
+│   └── pages/               # Additional pages
+│
+├── frontend/                # React dashboard (optional)
+│   └── src/                 # React components
+│
+├── data/                    # SQLite database
 ├── tests/                   # Unit tests
 └── PROJECT_PLAN.md          # Detailed project plan
 ```
@@ -229,7 +235,7 @@ See [PROJECT_PLAN.md](PROJECT_PLAN.md) for detailed implementation plan.
 ### Phase 1: Foundation ✅
 - [x] Project setup
 - [x] API research
-- [x] Architecture design
+- [x] Architecture design with web dashboard
 
 ### Phase 2: X API Integration
 - [ ] Implement X API client
@@ -238,15 +244,21 @@ See [PROJECT_PLAN.md](PROJECT_PLAN.md) for detailed implementation plan.
 
 ### Phase 3: Grok Integration
 - [ ] Set up xAI SDK
-- [ ] Implement categorization
+- [ ] Implement emergent categorization
 - [ ] Add confidence scoring
 
-### Phase 4: Analysis & Reporting
-- [ ] Statistical calculations
-- [ ] CLI interface
-- [ ] Export functionality
+### Phase 4: FastAPI Backend
+- [ ] REST API endpoints
+- [ ] WebSocket for real-time updates
+- [ ] Background task processing
 
-### Phase 5: Polish
+### Phase 5: Web Dashboard (Streamlit)
+- [ ] Overview dashboard page
+- [ ] Categories view with charts
+- [ ] Accounts browser
+- [ ] Scan progress UI
+
+### Phase 6: Polish
 - [ ] Documentation
 - [ ] Error handling
 - [ ] Performance optimization

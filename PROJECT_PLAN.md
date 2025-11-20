@@ -20,8 +20,9 @@ This project aims to build a tool that scans X (Twitter) accounts a user follows
 1. **Account Data Collection**: Fetch all following accounts using X API v2
 2. **Profile Analysis**: Extract and analyze account metadata, recent tweets, engagement metrics
 3. **AI-Powered Categorization**: Use Grok API to intelligently categorize accounts
-4. **Statistical Dashboard**: Display category distribution, account counts, and top accounts
-5. **Export Functionality**: Save results in multiple formats (JSON, CSV, HTML report)
+4. **Interactive Web Dashboard**: Rich web UI for exploring categories, statistics, and top accounts
+5. **Visual Analytics**: Charts, graphs, and interactive visualizations
+6. **Export Functionality**: Save results in multiple formats (JSON, CSV, PDF report)
 
 ---
 
@@ -31,6 +32,7 @@ This project aims to build a tool that scans X (Twitter) accounts a user follows
 
 **Backend/Core:**
 - **Language**: Python 3.11+
+- **Web Framework**: FastAPI (modern, async, REST API)
 - **HTTP Client**: `httpx` (async support for API calls)
 - **Data Processing**: `pandas` for data analysis
 - **Storage**: SQLite for local data persistence
@@ -41,34 +43,81 @@ This project aims to build a tool that scans X (Twitter) accounts a user follows
 - **Grok API**: For AI-powered categorization and analysis
 - **xAI Python SDK**: Official SDK for Grok integration
 
-**Analysis & Reporting:**
-- **Data Visualization**: `plotly` or `matplotlib` for charts
-- **Report Generation**: `jinja2` for HTML reports
-- **CLI Interface**: `typer` or `click` for command-line interaction
+**Frontend/Web UI:**
+- **Framework**: React with TypeScript (modern, component-based)
+- **UI Library**: Shadcn/ui or Tailwind CSS for styling
+- **Charts**: Recharts or Chart.js for visualizations
+- **State Management**: TanStack Query for API data
+- **Build Tool**: Vite for fast development
+
+**Alternative (Simpler):**
+- **Framework**: Streamlit or Gradio (Python-based, rapid prototyping)
+- **Benefits**: No separate frontend needed, faster initial development
+- **Charts**: Built-in Plotly integration
+
+**CLI Interface:**
+- **Framework**: `typer` for command-line operations
+- **Purpose**: Scanning, data updates, background tasks
 
 ### 2.2 System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      CLI Interface                          │
-│                    (User Commands)                          │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│                  Core Application                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   X API      │  │   Grok API   │  │   Database   │     │
-│  │   Client     │  │   Client     │  │   Manager    │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│              Processing Pipeline                            │
-│                                                             │
-│  1. Fetch Following → 2. Enrich Data → 3. Categorize →    │
-│  4. Analyze → 5. Generate Report                           │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Web Dashboard (React)                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Categories  │  │  Statistics  │  │   Accounts   │         │
+│  │     View     │  │    Charts    │  │    Browser   │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ HTTP/REST API
+┌────────────────────────▼────────────────────────────────────────┐
+│                  FastAPI Backend Server                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  REST API    │  │  WebSocket   │  │   Auth       │         │
+│  │  Endpoints   │  │  (realtime)  │  │  (optional)  │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│                   Core Application Layer                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │   X API      │  │   Grok API   │  │   Database   │         │
+│  │   Client     │  │   Client     │  │   Manager    │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────────┐
+│               Processing Pipeline (Background)                  │
+│  1. Fetch Following → 2. Discover Categories → 3. Categorize   │
+│  4. Generate Statistics → 5. Store Results                     │
+└─────────────────────────────────────────────────────────────────┘
+                         ▲
+                         │
+                ┌────────┴────────┐
+                │  CLI Interface  │
+                │  (Scan trigger) │
+                └─────────────────┘
 ```
+
+**Architecture Overview:**
+
+**Frontend (Web Dashboard):**
+- Interactive React app with real-time updates
+- Category browsing with filtering and search
+- Visual charts for distribution and trends
+- Account detail views with profile information
+- Export functionality
+
+**Backend (FastAPI):**
+- REST API for data access
+- WebSocket for real-time scan progress
+- Background task queue for scanning
+- Caching layer for performance
+
+**CLI:**
+- Trigger scans and updates
+- Admin operations
+- Scheduled background tasks
 
 ---
 
@@ -418,12 +467,6 @@ Categories Found: 15
 }
 ```
 
-**HTML Report:**
-- Interactive dashboard with charts
-- Sortable tables
-- Category filters
-- Export buttons
-
 **CSV Export:**
 - One row per account
 - All metadata included
@@ -431,7 +474,260 @@ Categories Found: 15
 
 ---
 
-## 7. Implementation Plan
+## 7. Web Dashboard UI Design
+
+### 7.1 Dashboard Overview
+
+The web dashboard is the primary interface for viewing and exploring your categorized X network. It provides an intuitive, visual way to understand your following patterns.
+
+**Key Pages:**
+1. **Overview Dashboard** - Summary statistics and key metrics
+2. **Categories View** - Browse all discovered categories
+3. **Accounts Browser** - Search and filter all accounts
+4. **Analytics** - Deep dive into trends and patterns
+5. **Settings** - Configuration and scan management
+
+### 7.2 Overview Dashboard (Landing Page)
+
+**Hero Section:**
+```
+┌────────────────────────────────────────────────────────────┐
+│  Your X Network Analysis                                   │
+│  Last updated: 2 hours ago                    [Refresh]    │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │     847      │  │      15      │  │    234/847   │   │
+│  │   Accounts   │  │  Categories  │  │   Verified   │   │
+│  │   Following  │  │  Discovered  │  │    (27.6%)   │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘   │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Category Distribution Chart:**
+- Interactive pie or donut chart
+- Click to filter by category
+- Hover for details
+- Legend with counts and percentages
+
+**Recent Insights:**
+- "You follow more AI researchers than any other category"
+- "Your most followed account is @username with 2.3M followers"
+- "You've added 12 new follows since last scan"
+
+### 7.3 Categories View
+
+**Category Grid:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AI/ML Researchers & Practitioners          [87 accounts]  │
+│  ━━━━━━━━━━━━━━━━━━━━ 10.3%                               │
+│                                                             │
+│  🏆 Top Accounts:                                          │
+│  1. @researcher1 (2.3M) • AI Research Lead                │
+│  2. @mlexpert (1.8M) • ML Engineer                        │
+│  3. @aiethics (950K) • AI Safety Researcher               │
+│  [View all 87 →]                                          │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Indie Makers & Bootstrapped Founders       [64 accounts]  │
+│  ━━━━━━━━━━━━━━━━ 7.6%                                     │
+│                                                             │
+│  🏆 Top Accounts:                                          │
+│  1. @maker1 (450K) • Building in public                   │
+│  2. @founder2 (380K) • SaaS founder                       │
+│  [View all 64 →]                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Category Details Modal:**
+- Full description and characteristics
+- All accounts in category
+- Subcategories if any
+- Export category data
+- Confidence scores
+
+### 7.4 Accounts Browser
+
+**Search and Filters:**
+- Search by username, display name, or bio
+- Filter by category
+- Filter by verified status
+- Filter by follower count range
+- Sort by: followers, following, tweets, recency
+
+**Account Cards:**
+```
+┌────────────────────────────────────────────────────────────┐
+│  [@username]  Display Name                    ✓ Verified   │
+│  [Profile Pic]                                             │
+│  Bio: Machine learning engineer building AI tools...       │
+│                                                            │
+│  👥 2.3M followers  •  842 following  •  12.4K tweets     │
+│  📁 AI/ML Researchers & Practitioners (95% confidence)     │
+│  🔗 website.com                                           │
+│                                                            │
+│  [View on X]  [Remove]  [Re-categorize]                  │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 7.5 Analytics Dashboard
+
+**Charts and Visualizations:**
+
+1. **Category Distribution**
+   - Pie chart with percentages
+   - Bar chart for comparison
+   - Interactive filtering
+
+2. **Follower Distribution by Category**
+   - Box plot showing follower ranges
+   - Identify "high-reach" categories
+
+3. **Verification Rate by Category**
+   - Bar chart comparing verification %
+   - Insights on "authority" categories
+
+4. **Network Growth Over Time** (if multiple scans)
+   - Line chart showing category growth
+   - New follows by category
+
+5. **Engagement Heatmap**
+   - Activity patterns
+   - Best times/days for each category
+
+### 7.6 Settings & Management
+
+**Scan Management:**
+- Trigger new scan
+- View scan history
+- Schedule automatic scans
+- Configure scan parameters
+
+**API Configuration:**
+- X API credentials
+- Grok API settings
+- Rate limiting preferences
+
+**Data Management:**
+- Export all data (JSON/CSV)
+- Clear cache
+- Delete old scans
+- Import previous data
+
+**Customization:**
+- Theme (light/dark mode)
+- Chart preferences
+- Default filters
+- Privacy settings
+
+### 7.7 Real-time Scan Progress
+
+**During Scan:**
+```
+┌────────────────────────────────────────────────────────────┐
+│  Scanning Your X Network...                               │
+│                                                            │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  60%                            │
+│                                                            │
+│  ✓ Fetched 847 accounts                                  │
+│  ⟳ Discovering categories... (analyzing 200 samples)     │
+│  ⏸ Categorizing accounts (507/847)                        │
+│                                                            │
+│  Estimated time remaining: 2 minutes                      │
+└────────────────────────────────────────────────────────────┘
+```
+
+**WebSocket Updates:**
+- Real-time progress bar
+- Live status messages
+- ETA calculation
+- Pause/resume capability
+
+### 7.8 Mobile Responsiveness
+
+- Fully responsive design
+- Mobile-optimized layouts
+- Touch-friendly interactions
+- Progressive Web App (PWA) support
+
+### 7.9 Technology Choices
+
+**Option 1: React + FastAPI (Recommended for Production)**
+
+**Pros:**
+- Full control over UI/UX
+- Best performance
+- Highly customizable
+- Professional appearance
+- Can deploy to any hosting
+
+**Cons:**
+- More development time
+- Separate frontend/backend
+- Requires TypeScript/React knowledge
+
+**Timeline:** 2-3 weeks for full dashboard
+
+---
+
+**Option 2: Streamlit (Recommended for MVP)**
+
+**Pros:**
+- Python-only (no JavaScript needed)
+- Rapid development (2-3 days)
+- Built-in components
+- Easy deployment
+- Perfect for prototyping
+
+**Cons:**
+- Less customizable
+- Limited styling options
+- Not as polished
+- Can feel "tool-like" vs "product-like"
+
+**Timeline:** 2-3 days for functional dashboard
+
+---
+
+**Recommendation:**
+- **Start with Streamlit** for quick MVP and validation
+- **Migrate to React** once proven valuable and need more features
+
+### 7.10 API Endpoints (Backend)
+
+**GET /api/stats**
+- Returns summary statistics
+
+**GET /api/categories**
+- List all discovered categories with metadata
+
+**GET /api/categories/{name}/accounts**
+- Get all accounts in specific category
+
+**GET /api/accounts**
+- List all accounts with filtering/sorting
+
+**GET /api/accounts/{username}**
+- Get specific account details
+
+**POST /api/scan**
+- Trigger new scan
+- Returns scan job ID
+
+**GET /api/scan/{job_id}/status**
+- Get scan progress via REST
+
+**WebSocket /ws/scan/{job_id}**
+- Real-time scan updates
+
+**GET /api/export**
+- Export data (JSON/CSV)
+
+---
+
+## 8. Implementation Plan
 
 ### Phase 1: Foundation & Setup (Week 1)
 
@@ -481,88 +777,158 @@ Categories Found: 15
 - Accurate account categorization
 - Confidence scoring
 
-### Phase 4: Analysis & Reporting (Week 3)
+### Phase 4: FastAPI Backend (Week 2-3)
 
 **Tasks:**
-1. Implement statistical calculations
-2. Create data visualization charts
-3. Design CLI interface with Typer
-4. Build HTML report generator
-5. Implement JSON/CSV export
-6. Add filtering and sorting options
-7. Create summary statistics
+1. Set up FastAPI project structure
+2. Implement REST API endpoints (see section 7.10)
+3. Create background task queue for scanning
+4. Add WebSocket support for real-time updates
+5. Implement data serialization and caching
+6. Add CORS for frontend communication
+7. Test API endpoints
 
 **Deliverables:**
-- Complete reporting system
-- Multiple export formats
-- Interactive CLI
+- Working REST API
+- Real-time WebSocket updates
+- Background task processing
+- API documentation (Swagger)
 
-### Phase 5: Polish & Optimization (Week 3-4)
+### Phase 5: Web Dashboard MVP (Week 3 - Streamlit)
 
 **Tasks:**
-1. Add progress bars for long operations
+1. Set up Streamlit application
+2. Create overview dashboard page
+3. Implement categories view with charts
+4. Build accounts browser with filtering
+5. Add scan trigger and progress display
+6. Implement export functionality
+7. Deploy locally and test
+
+**Deliverables:**
+- Functional web UI (Streamlit)
+- All core features working
+- Export capabilities
+- Local deployment ready
+
+**Alternative: React Dashboard (3-4 weeks)**
+1. Set up React + TypeScript + Vite
+2. Design component architecture
+3. Implement routing (React Router)
+4. Build dashboard pages (Overview, Categories, Accounts, Analytics)
+5. Integrate charts (Recharts/Chart.js)
+6. Connect to FastAPI backend
+7. Add state management (TanStack Query)
+8. Implement WebSocket for real-time updates
+9. Mobile responsive styling
+10. Production build and deployment
+
+### Phase 6: Polish & Optimization (Week 4)
+
+**Tasks:**
+1. Add progress bars and loading states
 2. Implement incremental updates (only new follows)
-3. Add configuration options
+3. Add error handling and user feedback
 4. Write comprehensive documentation
-5. Add error handling and logging
-6. Optimize performance
-7. Create example usage scenarios
+5. Optimize API performance (caching, indexing)
+6. Add configuration UI in dashboard
+7. Create example usage scenarios and screenshots
 
 **Deliverables:**
-- Production-ready tool
+- Production-ready application
 - User documentation
+- Deployment guide
 - Example configurations
 
-### Phase 6: Advanced Features (Optional - Week 4+)
+### Phase 7: Advanced Features (Optional - Week 5+)
 
 **Tasks:**
-1. Web dashboard (Flask/FastAPI)
-2. Scheduled automatic scans
-3. Historical trend analysis
-4. Account recommendation engine
-5. Multi-user support
-6. Cloud deployment option
+1. Scheduled automatic scans (cron jobs)
+2. Historical trend analysis across multiple scans
+3. Account recommendation engine
+4. Multi-user support with authentication
+5. Cloud deployment (Vercel/Railway/Fly.io)
+6. Custom category creation
+7. Account notes and tagging
+8. Email/Slack notifications for changes
 
 ---
 
-## 8. Project Structure
+## 9. Project Structure
 
 ```
 x-cleaner/
-├── src/
+├── backend/
 │   ├── __init__.py
-│   ├── main.py                 # CLI entry point
+│   ├── main.py                 # FastAPI app entry point
 │   ├── config.py               # Configuration management
-│   ├── models.py               # Data models (Pydantic)
+│   ├── models.py               # Pydantic data models
 │   ├── database.py             # SQLite database manager
 │   ├── api/
 │   │   ├── __init__.py
+│   │   ├── routes.py           # FastAPI route definitions
+│   │   ├── websockets.py       # WebSocket handlers
 │   │   ├── x_client.py         # X API client
 │   │   └── grok_client.py      # Grok API client
-│   ├── analysis/
+│   ├── core/
 │   │   ├── __init__.py
-│   │   ├── categorizer.py      # Categorization logic
+│   │   ├── scanner.py          # Scanning logic
+│   │   ├── categorizer.py      # Categorization engine
 │   │   └── statistics.py       # Statistical analysis
-│   └── reporting/
+│   ├── tasks/
+│   │   ├── __init__.py
+│   │   └── background.py       # Background task queue
+│   └── cli/
 │       ├── __init__.py
-│       ├── console.py          # Console output
-│       ├── html_report.py      # HTML generation
-│       └── export.py           # JSON/CSV export
+│       └── commands.py         # CLI commands (Typer)
+│
+├── frontend/                   # React dashboard (optional)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Categories.tsx
+│   │   │   ├── AccountBrowser.tsx
+│   │   │   └── Analytics.tsx
+│   │   ├── api/
+│   │   │   └── client.ts       # API client
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── streamlit_app/              # Streamlit dashboard (MVP)
+│   ├── app.py                  # Main Streamlit app
+│   ├── pages/
+│   │   ├── 1_Categories.py
+│   │   ├── 2_Accounts.py
+│   │   └── 3_Analytics.py
+│   └── components/
+│       ├── charts.py
+│       └── filters.py
+│
 ├── tests/
 │   ├── __init__.py
 │   ├── test_x_client.py
+│   ├── test_grok_client.py
 │   ├── test_categorizer.py
-│   └── test_statistics.py
+│   └── test_api.py
+│
 ├── data/                       # Local data storage
 │   └── accounts.db             # SQLite database
-├── templates/
-│   └── report.html             # HTML report template
+│
+├── docs/                       # Documentation
+│   ├── API.md                  # API documentation
+│   ├── DEPLOYMENT.md           # Deployment guide
+│   └── ARCHITECTURE.md         # Architecture details
+│
 ├── .env.example                # Example environment variables
 ├── .gitignore
 ├── README.md
-├── requirements.txt
-├── pyproject.toml             # Poetry/pip configuration
-└── PROJECT_PLAN.md            # This file
+├── requirements.txt            # Python dependencies
+├── package.json                # Node dependencies (if React)
+├── pyproject.toml              # Poetry/pip configuration
+├── docker-compose.yml          # Docker setup (optional)
+└── PROJECT_PLAN.md             # This file
 ```
 
 ---
@@ -737,17 +1103,28 @@ x-cleaner interactive
 
 ## 15. Timeline Summary
 
-**Total Duration**: 3-4 weeks for MVP
+**MVP with Streamlit Dashboard**: 3-4 weeks
 
-- Week 1: Setup + X API Integration
-- Week 2: Grok Integration + Basic Analysis
-- Week 3: Reporting + CLI
-- Week 4: Polish + Documentation
+- **Week 1**: Setup + X API Integration
+  - Project structure, X API client, database setup
+- **Week 2**: Grok Integration + Backend
+  - AI categorization, FastAPI backend, REST API
+- **Week 3**: Web Dashboard (Streamlit)
+  - UI pages, charts, real-time updates, export
+- **Week 4**: Polish + Documentation
+  - Error handling, optimization, docs, deployment
 
-**Quick Start (Minimal)**: 1-2 weeks
+**Full React Dashboard**: 5-6 weeks
+- Weeks 1-2: Same as MVP
+- Weeks 3-4: React frontend development
+- Week 5: Integration and styling
+- Week 6: Polish and deployment
+
+**Quick CLI-Only Version**: 1-2 weeks
 - Basic scan and categorization
 - Simple console output
-- JSON export
+- JSON/CSV export
+- No web UI
 
 ---
 
@@ -771,11 +1148,13 @@ x-cleaner interactive
 - [ ] Test Grok API connection
 
 ### First Run
-- [ ] Execute `x-cleaner scan` command
-- [ ] Verify accounts are fetched
-- [ ] Verify categorization works
-- [ ] Generate first report
-- [ ] Review accuracy of categories
+- [ ] Start FastAPI backend: `uvicorn backend.main:app --reload`
+- [ ] Start Streamlit dashboard: `streamlit run streamlit_app/app.py`
+- [ ] Open dashboard in browser (usually http://localhost:8501)
+- [ ] Trigger scan from web UI
+- [ ] Verify accounts are fetched and categorized
+- [ ] Explore categories and statistics
+- [ ] Export data if needed
 
 ---
 
