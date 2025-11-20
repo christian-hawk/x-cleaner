@@ -191,32 +191,13 @@ class XAPIClient:
 
 ```python
 import os
-from typing import List
+import json
+from typing import List, Dict, Optional
 from openai import OpenAI
 from ..models import XAccount, CategorizedAccount
 
-CATEGORIES = [
-    "Technology & Development",
-    "Business & Finance",
-    "News & Media",
-    "Entertainment & Pop Culture",
-    "Science & Research",
-    "Sports & Fitness",
-    "Art & Design",
-    "Marketing & Branding",
-    "Education & Learning",
-    "Politics & Government",
-    "Health & Wellness",
-    "Gaming & Esports",
-    "Fashion & Lifestyle",
-    "Food & Cooking",
-    "Travel & Adventure",
-    "Personal/Friends",
-    "Other"
-]
-
 class GrokClient:
-    """Client for xAI Grok API"""
+    """Client for xAI Grok API with emergent categorization"""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("XAI_API_KEY")
@@ -224,66 +205,80 @@ class GrokClient:
             api_key=self.api_key,
             base_url="https://api.x.ai/v1"
         )
+        self.discovered_categories = None
 
-    async def categorize_accounts(
+    async def analyze_and_categorize(
         self,
         accounts: List[XAccount],
-        batch_size: int = 50
-    ) -> List[CategorizedAccount]:
-        """Categorize accounts using Grok"""
-        categorized = []
+        sample_size: int = 200
+    ) -> tuple[Dict, List[CategorizedAccount]]:
+        """
+        Two-phase categorization:
+        1. Discover natural categories from data
+        2. Categorize all accounts using discovered categories
 
-        # Process in batches
-        for i in range(0, len(accounts), batch_size):
-            batch = accounts[i:i + batch_size]
-            batch_results = await self._categorize_batch(batch)
-            categorized.extend(batch_results)
+        Returns:
+            tuple: (category_metadata, categorized_accounts)
+        """
+        # Phase 1: Discover categories from sample
+        sample = accounts[:sample_size] if len(accounts) > sample_size else accounts
+        categories = await self._discover_categories(sample)
+        self.discovered_categories = categories
 
-        return categorized
+        # Phase 2: Categorize all accounts
+        categorized = await self._categorize_with_discovered(accounts, categories)
 
-    async def _categorize_batch(
+        return categories, categorized
+
+    async def _discover_categories(
         self,
-        accounts: List[XAccount]
-    ) -> List[CategorizedAccount]:
-        """Categorize a batch of accounts"""
-        # Build prompt with account information
-        accounts_info = []
-        for idx, account in enumerate(accounts):
-            info = f"""
-Account {idx + 1}:
-- Username: @{account.username}
-- Display Name: {account.display_name}
-- Bio: {account.bio or 'N/A'}
-- Followers: {account.followers_count:,}
-- Following: {account.following_count:,}
-- Verified: {account.verified}
-- Location: {account.location or 'N/A'}
-"""
-            accounts_info.append(info)
+        sample_accounts: List[XAccount]
+    ) -> Dict:
+        """Phase 1: Discover natural categories from account data"""
 
-        prompt = f"""You are an expert at analyzing X (Twitter) accounts.
-Categorize each account into ONE primary category from this list:
-{', '.join(CATEGORIES)}
+        # Build account summaries
+        accounts_summary = []
+        for account in sample_accounts:
+            summary = f"@{account.username}: {account.bio or 'No bio'} "
+            summary += f"({account.followers_count:,} followers)"
+            accounts_summary.append(summary)
 
-For each account, respond with JSON in this format:
+        prompt = f"""You are an expert at analyzing social media networks and identifying natural community patterns.
+
+I have {len(sample_accounts)} X (Twitter) accounts. Analyze them and discover 10-20 natural categories based on actual patterns in the data.
+
+Accounts summary (username: bio, followers):
+{chr(10).join(accounts_summary[:100])}  # First 100 for discovery
+... and {len(sample_accounts) - 100} more accounts
+
+Your task:
+1. Identify natural groupings and communities
+2. Create 10-20 descriptive category names
+3. Explain key characteristics of each category
+4. Estimate the percentage of accounts in each
+
+DO NOT use predefined categories. Discover what's actually in THIS network.
+
+Respond with JSON:
 {{
-  "account_number": 1,
-  "category": "Technology & Development",
-  "confidence": 0.95,
-  "reasoning": "Brief explanation"
-}}
-
-Accounts to categorize:
-{''.join(accounts_info)}
-
-Respond with a JSON array of categorizations."""
+  "categories": [
+    {{
+      "name": "Descriptive Category Name",
+      "description": "What defines this category",
+      "characteristics": ["trait 1", "trait 2", "trait 3"],
+      "estimated_percentage": 15
+    }}
+  ],
+  "total_categories": 12,
+  "analysis_summary": "Brief overview of the network"
+}}"""
 
         response = self.client.chat.completions.create(
             model="grok-4-1-fast-reasoning",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a social media account categorization expert."
+                    "content": "You are a social network analysis expert who discovers natural patterns in data."
                 },
                 {
                     "role": "user",
@@ -293,10 +288,96 @@ Respond with a JSON array of categorizations."""
             temperature=0.3
         )
 
-        # Parse response and create CategorizedAccount objects
         result_text = response.choices[0].message.content
-        categorizations = self._parse_grok_response(result_text)
+        categories_data = self._extract_json(result_text)
 
+        return categories_data
+
+    async def _categorize_with_discovered(
+        self,
+        accounts: List[XAccount],
+        categories: Dict,
+        batch_size: int = 50
+    ) -> List[CategorizedAccount]:
+        """Phase 2: Categorize accounts using discovered categories"""
+
+        categorized = []
+        category_names = [cat["name"] for cat in categories["categories"]]
+
+        # Process in batches
+        for i in range(0, len(accounts), batch_size):
+            batch = accounts[i:i + batch_size]
+            batch_results = await self._categorize_batch(batch, category_names, categories)
+            categorized.extend(batch_results)
+
+        return categorized
+
+    async def _categorize_batch(
+        self,
+        accounts: List[XAccount],
+        category_names: List[str],
+        categories_metadata: Dict
+    ) -> List[CategorizedAccount]:
+        """Categorize a batch of accounts"""
+
+        # Build account details
+        accounts_info = []
+        for idx, account in enumerate(accounts):
+            info = f"""
+{idx + 1}. @{account.username} ({account.display_name})
+   Bio: {account.bio or 'N/A'}
+   Followers: {account.followers_count:,} | Following: {account.following_count:,}
+   Verified: {account.verified} | Tweets: {account.tweet_count:,}
+"""
+            accounts_info.append(info)
+
+        prompt = f"""Categorize these X accounts using the discovered category system.
+
+Available categories:
+{', '.join(category_names)}
+
+Category descriptions:
+{json.dumps([{c['name']: c['description']} for c in categories_metadata['categories']], indent=2)}
+
+Accounts to categorize:
+{''.join(accounts_info)}
+
+For each account, provide:
+- Primary category (must be from the list above)
+- Confidence (0.0 to 1.0)
+- Brief reasoning
+- Alternative category if confidence < 0.8
+
+Respond as JSON array:
+[
+  {{
+    "account_index": 1,
+    "category": "Category Name",
+    "confidence": 0.95,
+    "reasoning": "Why this category fits",
+    "alternative": null
+  }}
+]"""
+
+        response = self.client.chat.completions.create(
+            model="grok-4-1-fast-reasoning",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You categorize accounts accurately based on discovered patterns."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2
+        )
+
+        result_text = response.choices[0].message.content
+        categorizations = self._extract_json(result_text)
+
+        # Convert to CategorizedAccount objects
         categorized_accounts = []
         for account, cat_data in zip(accounts, categorizations):
             categorized_accounts.append(
@@ -310,12 +391,13 @@ Respond with a JSON array of categorizations."""
 
         return categorized_accounts
 
-    def _parse_grok_response(self, response_text: str) -> List[dict]:
-        """Parse Grok's JSON response"""
-        import json
-        # Extract JSON from response (may have markdown formatting)
+    def _extract_json(self, response_text: str) -> Dict:
+        """Extract JSON from response (handles markdown formatting)"""
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0]
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0]
+
         return json.loads(response_text.strip())
 ```
 
@@ -472,21 +554,25 @@ async def _scan_async(user_id: Optional[str]):
 
         console.print(f"✓ Found {len(accounts)} accounts")
 
-        # Categorize
+        # Phase 1: Discover categories
         task = progress.add_task(
-            "[cyan]Categorizing accounts...",
-            total=len(accounts)
+            "[cyan]Discovering natural categories...",
+            total=None
         )
-        categorized = await grok_client.categorize_accounts(accounts)
-        progress.update(task, completed=len(accounts))
+        categories, categorized = await grok_client.analyze_and_categorize(accounts)
+        progress.update(task, completed=100)
+
+        console.print(f"✓ Discovered {len(categories['categories'])} categories")
+        console.print(f"✓ Categorized all {len(categorized)} accounts")
 
         # Save
         db.save_accounts(categorized)
+        db.save_categories(categories)  # Store discovered categories
         console.print("✓ Saved to database")
 
-    # Show report
+    # Show report with discovered categories
     reporter = ConsoleReporter()
-    reporter.show_summary(categorized)
+    reporter.show_summary(categorized, categories)
 
     await x_client.close()
 

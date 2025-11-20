@@ -137,37 +137,76 @@ From `/2/users/:id/following`:
 
 ### 4.3 Prompting Strategy
 
-**System Prompt Template:**
+**Phase 1: Category Discovery Prompt**
 ```
-You are an expert at analyzing X (Twitter) accounts and categorizing them.
-Analyze the following account profile and categorize it into ONE primary category.
+You are an expert at analyzing social media networks and identifying natural community patterns.
 
-Categories to choose from:
-- Technology & Development
-- Business & Finance
-- News & Media
-- Entertainment & Pop Culture
-- Science & Research
-- Sports & Fitness
-- Art & Design
-- Marketing & Branding
-- Education & Learning
-- Politics & Government
-- Health & Wellness
-- Gaming & Esports
-- Fashion & Lifestyle
-- Food & Cooking
-- Travel & Adventure
-- Personal/Friends
-- Other
+I have [N] X (Twitter) accounts that a user follows. Your task is to:
+1. Analyze all accounts holistically
+2. Identify 10-20 natural categories based on actual patterns in the data
+3. Provide clear, descriptive names for each category
+4. Explain the key characteristics of each category
 
-Consider:
-- Bio description
-- Tweet content patterns
-- Follower/following ratio
+For each account, you have:
+- Username and display name
+- Bio/description
+- Follower/following counts
 - Verified status
-- Account age and activity level
+- Tweet count and account age
+- Location (if provided)
+
+Do NOT use predefined categories. Instead, discover the natural groupings that emerge from THIS specific dataset. Look for:
+- Common themes and topics
+- Professional domains and industries
+- Content styles and engagement patterns
+- Community overlap and connections
+- Account types (individual, organization, bot, etc.)
+
+Provide categories as JSON with this structure:
+{
+  "categories": [
+    {
+      "name": "AI/ML Researchers & Practitioners",
+      "description": "...",
+      "characteristics": [...],
+      "estimated_size": "10-15%"
+    }
+  ]
+}
 ```
+
+**Phase 2: Account Categorization Prompt**
+```
+You are an expert at categorizing X accounts based on discovered patterns.
+
+Using the following category system you discovered:
+[Insert discovered categories from Phase 1]
+
+Now categorize each of these accounts. For each account, provide:
+- Primary category (must be from the discovered categories)
+- Confidence score (0.0 to 1.0)
+- Brief reasoning (1-2 sentences)
+- Alternative category if confidence < 0.8
+
+Respond as JSON array:
+[
+  {
+    "username": "@example",
+    "category": "AI/ML Researchers & Practitioners",
+    "confidence": 0.95,
+    "reasoning": "...",
+    "alternative": null
+  }
+]
+```
+
+**Key Considerations:**
+- Bio description and self-identification
+- Content patterns and topics
+- Follower/following ratio and verified status
+- Account activity level and age
+- Website domain patterns
+- Community indicators
 
 ### 4.4 Cost Estimation
 
@@ -185,89 +224,128 @@ Consider:
 
 ## 5. Categorization System
 
-### 5.1 Primary Categories
+### 5.1 Emergent, AI-Driven Categorization
 
-1. **Technology & Development**
-   - Software engineers, developers, tech companies
-   - Programming languages, frameworks, tools
+**Philosophy:** Instead of forcing accounts into predefined categories, we let Grok analyze the entire dataset and discover natural groupings based on actual patterns in the data.
 
-2. **Business & Finance**
-   - Entrepreneurs, investors, business news
-   - Startups, venture capital, economics
+**Two-Phase Approach:**
 
-3. **News & Media**
-   - Journalists, news outlets, reporters
-   - Breaking news, current events
+**Phase 1: Discovery & Analysis**
+- Grok analyzes all accounts holistically
+- Identifies common themes, patterns, and natural clusters
+- Discovers emergent categories based on:
+  - Content themes and topics
+  - Audience overlap and community patterns
+  - Account behavior and engagement style
+  - Bio descriptions and self-identification
+  - Activity patterns and posting frequency
 
-4. **Entertainment & Pop Culture**
-   - Celebrities, actors, musicians
-   - Movies, TV shows, music industry
+**Phase 2: Categorization & Refinement**
+- Assigns each account to discovered categories
+- Provides reasoning for each categorization
+- Identifies outliers and unique accounts
+- Suggests subcategories or nuanced groupings
 
-5. **Science & Research**
-   - Scientists, researchers, academic institutions
-   - Research papers, discoveries, education
+### 5.2 Categorization Strategy
 
-6. **Sports & Fitness**
-   - Athletes, sports teams, coaches
-   - Fitness influencers, sports news
+**Approach 1: Holistic Analysis (Recommended)**
+```
+Step 1: Send all account data to Grok in batches
+Step 2: Ask Grok to identify natural categories (10-20)
+Step 3: Grok categorizes each account into discovered categories
+Step 4: Generate category descriptions and characteristics
+```
 
-7. **Art & Design**
-   - Artists, designers, photographers
-   - Creative work, galleries, exhibitions
+**Approach 2: Iterative Clustering**
+```
+Step 1: Analyze sample set (100-200 accounts)
+Step 2: Identify initial category patterns
+Step 3: Categorize remaining accounts
+Step 4: Refine categories based on full dataset
+```
 
-8. **Marketing & Branding**
-   - Marketers, agencies, brand strategists
-   - Social media experts, growth hackers
+### 5.3 Category Discovery Criteria
 
-9. **Education & Learning**
-   - Educators, teachers, educational content
-   - Online courses, learning resources
+Grok will consider multiple dimensions:
 
-10. **Politics & Government**
-    - Politicians, political analysts, government
-    - Policy, elections, political movements
+**Content Analysis:**
+- Primary topics discussed
+- Language style and tone
+- Expertise level (expert, enthusiast, casual)
+- Content format (threads, links, media, quotes)
 
-11. **Health & Wellness**
-    - Health professionals, fitness experts
-    - Nutrition, mental health, wellness
+**Account Characteristics:**
+- Professional vs. personal
+- Individual vs. organization
+- Influencer vs. niche expert
+- Active vs. archived accounts
 
-12. **Gaming & Esports**
-    - Gamers, streamers, esports teams
-    - Game developers, gaming news
+**Community Patterns:**
+- Who they interact with
+- Follower/following ratio patterns
+- Verified status implications
+- Cross-category influences
 
-13. **Fashion & Lifestyle**
-    - Fashion designers, influencers, brands
-    - Lifestyle content, trends
+**Behavioral Indicators:**
+- Posting frequency and consistency
+- Engagement patterns
+- Content curation vs. creation
+- Multi-topic vs. single-focus
 
-14. **Food & Cooking**
-    - Chefs, food bloggers, restaurants
-    - Recipes, food photography
+### 5.4 Category Metadata
 
-15. **Travel & Adventure**
-    - Travel bloggers, tour guides
-    - Destinations, travel tips
+Each discovered category includes:
+- **Name**: AI-generated descriptive name
+- **Description**: Key characteristics and themes
+- **Account Count**: Number of accounts in category
+- **Exemplars**: Top representative accounts
+- **Subcategories**: Optional finer distinctions
+- **Related Categories**: Overlap patterns
 
-16. **Personal/Friends**
-    - Personal connections, friends, family
-    - Non-public figures with small following
+### 5.5 Example Output Structure
 
-17. **Other**
-    - Accounts that don't fit other categories
-    - Bots, inactive accounts
+```json
+{
+  "categories": [
+    {
+      "name": "AI/ML Researchers & Practitioners",
+      "description": "Accounts focused on artificial intelligence research, machine learning engineering, and AI product development",
+      "account_count": 87,
+      "characteristics": [
+        "Frequent technical discussions",
+        "Paper sharing and research updates",
+        "High engagement with academic community"
+      ],
+      "exemplars": ["@user1", "@user2", "@user3"],
+      "subcategories": ["Academic AI", "AI Product", "AI Safety"]
+    },
+    {
+      "name": "Indie Makers & Bootstrapped Founders",
+      "description": "Solo entrepreneurs building products independently without VC funding",
+      "account_count": 64,
+      "characteristics": [
+        "Share building in public",
+        "Revenue and metrics transparency",
+        "Strong mutual support community"
+      ],
+      "exemplars": ["@user4", "@user5", "@user6"]
+    }
+  ]
+}
+```
 
-### 5.2 Categorization Criteria
+### 5.6 Confidence & Quality Metrics
 
-**Primary Factors:**
-- Bio keywords and hashtags
-- Recent tweet content analysis
-- Account metrics (followers, engagement)
-- Verified status and account type
-- Links in bio (website domains)
+**Per-Account Confidence:**
+- How well account fits discovered category
+- Alternative category possibilities
+- Uncertainty indicators
 
-**Confidence Scoring:**
-- High (>80%): Clear category match
-- Medium (50-80%): Likely category
-- Low (<50%): Uncertain, may need manual review
+**Category Quality Scores:**
+- Coherence: How similar accounts within category are
+- Distinctiveness: How different from other categories
+- Completeness: Coverage of the account space
+- Interpretability: How clear the category definition is
 
 ---
 

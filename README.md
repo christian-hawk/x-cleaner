@@ -40,25 +40,31 @@ Categories Found: 15
 
 ## Categories
 
-The tool categorizes accounts into 17 main categories:
+**Emergent, AI-Driven Categorization**
 
-- Technology & Development
-- Business & Finance
-- News & Media
-- Entertainment & Pop Culture
-- Science & Research
-- Sports & Fitness
-- Art & Design
-- Marketing & Branding
-- Education & Learning
-- Politics & Government
-- Health & Wellness
-- Gaming & Esports
-- Fashion & Lifestyle
-- Food & Cooking
-- Travel & Adventure
-- Personal/Friends
-- Other
+Unlike traditional tools that force accounts into predefined categories, X-Cleaner uses Grok AI to **discover natural categories** from your specific network.
+
+**How it works:**
+1. **Discovery Phase**: Grok analyzes all your followed accounts and identifies natural groupings (typically 10-20 categories)
+2. **Categorization Phase**: Each account is assigned to the most appropriate discovered category
+3. **Results**: You get categories that actually reflect YOUR network's composition
+
+**Example discovered categories might include:**
+- "AI/ML Researchers & Practitioners"
+- "Indie Makers & Bootstrapped Founders"
+- "Crypto/Web3 Builders"
+- "Technical Writers & Educators"
+- "DevRel & Developer Advocates"
+- "VC Investors & Startup Advisors"
+- "Design Systems & UI/UX Experts"
+- "Security Researchers & Ethical Hackers"
+
+**Benefits:**
+- ✅ More accurate than predefined categories
+- ✅ Reflects YOUR specific network
+- ✅ Discovers niche communities
+- ✅ Adapts to emerging trends
+- ✅ No manual category selection needed
 
 ## Prerequisites
 
