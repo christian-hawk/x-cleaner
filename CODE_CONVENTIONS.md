@@ -8,6 +8,127 @@
 
 **Code is read far more often than it is written. Optimize for readability above all else.**
 
+### SOLID Principles (Uncle Bob)
+
+#### S - Single Responsibility Principle
+Each class/function should have ONE reason to change.
+
+```python
+# ❌ BAD - Multiple responsibilities
+class AccountManager:
+    def fetch_accounts(self): pass
+    def categorize_accounts(self): pass
+    def save_to_database(self): pass
+    def send_email_report(self): pass  # Too many responsibilities!
+
+# ✅ GOOD - Single responsibility
+class AccountFetcher:
+    def fetch_accounts(self): pass
+
+class AccountCategorizer:
+    def categorize_accounts(self): pass
+
+class AccountRepository:
+    def save_to_database(self): pass
+
+class ReportEmailService:
+    def send_email_report(self): pass
+```
+
+#### O - Open/Closed Principle
+Open for extension, closed for modification.
+
+```python
+# ✅ GOOD - Use Strategy pattern for extension
+class CategorizationStrategy(ABC):
+    @abstractmethod
+    def categorize(self, account): pass
+
+class GrokCategorization(CategorizationStrategy):
+    def categorize(self, account): pass
+
+class RuleBasedCategorization(CategorizationStrategy):
+    def categorize(self, account): pass
+```
+
+#### L - Liskov Substitution Principle
+Subtypes must be substitutable for their base types.
+
+#### I - Interface Segregation Principle
+Many specific interfaces > one general interface.
+
+#### D - Dependency Inversion Principle
+Depend on abstractions, not concretions (use Dependency Injection).
+
+### Function Principles
+
+- **Do ONE thing** - Function should do one thing only, do it well
+- **One level of abstraction** - Don't mix high/low level operations
+- **Stepdown Rule** - Code reads like top-to-bottom narrative
+- **Command Query Separation** - Function either does something OR returns something, not both
+- **No flag arguments** - Boolean parameters indicate function does 2+ things
+- **Extract try/catch blocks** - Error handling is ONE thing
+
+```python
+# ❌ BAD - Flag argument
+def process_account(account, is_premium):
+    if is_premium:
+        # Premium logic
+    else:
+        # Regular logic
+
+# ✅ GOOD - Separate functions
+def process_premium_account(account): pass
+def process_regular_account(account): pass
+```
+
+### Error Handling Principles
+
+- **Use exceptions, not return codes**
+- **Don't return None** - Raise exception or return empty object
+- **Don't pass None** - Validate parameters
+- **Provide context** - Exception messages must be actionable
+
+```python
+# ❌ BAD
+def get_account(username):
+    # Returns None on error
+    if not username:
+        return None
+    account = db.find(username)
+    return account if account else None
+
+# ✅ GOOD
+def get_account(username: str) -> Account:
+    if not username:
+        raise ValueError("Username cannot be empty")
+
+    account = db.find(username)
+    if not account:
+        raise AccountNotFoundError(f"Account '{username}' not found")
+
+    return account
+```
+
+### Law of Demeter (Don't Talk to Strangers)
+
+Only talk to immediate friends, not friends of friends.
+
+```python
+# ❌ BAD - Train wreck (chain of calls)
+city = account.user.address.city
+
+# ✅ GOOD - Ask object to do something
+city = account.get_user_city()
+```
+
+### Simple Design (Kent Beck)
+
+1. **Passes all tests**
+2. **No duplication**
+3. **Expresses intent clearly**
+4. **Minimizes classes and methods**
+
 ### Critical Rules
 
 #### 1. DRY Principle (Don't Repeat Yourself)
