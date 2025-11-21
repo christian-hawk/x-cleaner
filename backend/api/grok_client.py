@@ -339,6 +339,27 @@ Respond as JSON array:
         except (json.JSONDecodeError, IndexError) as e:
             raise GrokAPIError(f"Failed to parse JSON response: {str(e)}") from e
 
+    async def categorize_with_existing_categories(
+        self, accounts: List[XAccount], categories: Dict
+    ) -> List[CategorizedAccount]:
+        """
+        Categorize accounts using existing categories (public interface).
+
+        This is the public method for categorizing accounts with pre-discovered
+        categories, useful for incremental updates.
+
+        Args:
+            accounts: List of accounts to categorize
+            categories: Pre-discovered categories dictionary
+
+        Returns:
+            List of categorized accounts
+
+        Raises:
+            GrokAPIError: If categorization fails
+        """
+        return await self._categorize_with_discovered(accounts, categories)
+
     def get_discovered_categories(self) -> Optional[Dict]:
         """
         Get the currently discovered categories.

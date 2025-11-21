@@ -261,3 +261,44 @@ async def test_analyze_and_categorize_full_flow(
         assert len(categorized) == 2
         assert isinstance(categorized[0], CategorizedAccount)
         assert client.discovered_categories is not None
+
+
+@pytest.mark.asyncio
+async def test_categorize_with_existing_categories(
+    sample_accounts, mock_category_response, mock_categorization_response
+):
+    """Test categorizing with existing categories (public method)."""
+    import json
+
+    with patch.dict("os.environ", {"XAI_API_KEY": "test_key"}):
+        client = GrokClient()
+
+        # Mock OpenAI client response
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = (
+            f"```json\n{json.dumps(mock_categorization_response)}\n```"
+        )
+        mock_choice.message = mock_message
+
+        mock_completion = MagicMock()
+        mock_completion.choices = [mock_choice]
+
+        # Create async mock
+        async_mock = AsyncMock()
+        async_mock.return_value = mock_completion
+
+        with patch.object(
+            client.client.chat.completions,
+            "create",
+            async_mock,
+        ):
+            # Execute public method
+            categorized = await client.categorize_with_existing_categories(
+                sample_accounts, mock_category_response
+            )
+
+            # Assert
+            assert len(categorized) == 2
+            assert isinstance(categorized[0], CategorizedAccount)
+            assert categorized[0].category == "Technology & Engineering"

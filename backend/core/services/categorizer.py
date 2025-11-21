@@ -44,10 +44,12 @@ class CategorizationService:
         self, accounts: List[XAccount], force_refresh: bool = False
     ) -> Tuple[Dict, List[CategorizedAccount]]:
         """
-        Categorize accounts with intelligent caching.
+        Categorize accounts with intelligent partial caching.
 
-        Checks database for existing categorizations. Only re-categorizes
-        if forced, data is stale, or accounts are new.
+        Checks database for existing categorizations. Uses partial cache hits:
+        - Fresh cached accounts are reused
+        - Only missing/stale accounts are re-categorized via API
+        - Results are merged to minimize API costs
 
         Args:
             accounts: List of accounts to categorize
@@ -63,25 +65,61 @@ class CategorizationService:
         if not accounts:
             raise ValueError("No accounts provided for categorization")
 
-        # Check cache unless force refresh
-        if not force_refresh:
-            cached_result = self._get_cached_categorizations(accounts)
-            if cached_result:
-                categories_metadata, cached_accounts = cached_result
+        # Get categories metadata (needed for return value)
+        categories = self.db_manager.get_categories()
+        categories_dict = {
+            "categories": categories,
+            "total_categories": len(categories),
+        } if categories else None
 
-                # If all accounts are cached and fresh, return cached data
-                if len(cached_accounts) == len(accounts):
-                    return categories_metadata, cached_accounts
+        # If force refresh, skip cache entirely
+        if force_refresh:
+            categories_metadata, categorized = await self.grok_client.analyze_and_categorize(
+                accounts
+            )
+            self._save_categorization_results(categories_metadata, categorized)
+            return categories_metadata, categorized
 
-        # Perform fresh categorization
-        categories_metadata, categorized = await self.grok_client.analyze_and_categorize(
+        # Identify which accounts are cached and fresh vs need categorization
+        fresh_cached, accounts_to_categorize = self._partition_accounts_by_cache(
             accounts
         )
 
-        # Save to database for future caching
-        self._save_categorization_results(categories_metadata, categorized)
+        # If all accounts are cached and fresh, return cached data
+        if not accounts_to_categorize:
+            return categories_dict, fresh_cached
 
-        return categories_metadata, categorized
+        # Need to categorize some accounts
+        if not accounts_to_categorize:
+            # All cached, return early
+            return categories_dict, fresh_cached
+
+        # Categorize only the accounts that need it
+        if categories_dict and len(fresh_cached) > 0:
+            # We have existing categories, use them for consistency
+            newly_categorized = await self.grok_client.categorize_with_existing_categories(
+                accounts_to_categorize, categories_dict
+            )
+            # Keep existing categories metadata
+            final_categories = categories_dict
+        else:
+            # No existing categories or no cached accounts, do full discovery
+            final_categories, newly_categorized = await self.grok_client.analyze_and_categorize(
+                accounts_to_categorize
+            )
+
+        # Save new categorizations
+        self.db_manager.save_categories(final_categories)
+        self.db_manager.save_accounts(newly_categorized)
+
+        # Merge fresh cached with newly categorized
+        all_categorized = fresh_cached + newly_categorized
+
+        # Sort by original order (preserve input order)
+        account_order = {acc.user_id: idx for idx, acc in enumerate(accounts)}
+        all_categorized.sort(key=lambda acc: account_order.get(acc.user_id, 999999))
+
+        return final_categories, all_categorized
 
     async def categorize_new_accounts(
         self, new_accounts: List[XAccount]
@@ -118,7 +156,8 @@ class CategorizationService:
             "total_categories": len(existing_categories),
         }
 
-        categorized = await self.grok_client._categorize_with_discovered(
+        # Use public method instead of private _categorize_with_discovered
+        categorized = await self.grok_client.categorize_with_existing_categories(
             new_accounts, categories_dict
         )
 
@@ -127,50 +166,43 @@ class CategorizationService:
 
         return categorized
 
-    def _get_cached_categorizations(
+    def _partition_accounts_by_cache(
         self, accounts: List[XAccount]
-    ) -> Optional[Tuple[Dict, List[CategorizedAccount]]]:
+    ) -> Tuple[List[CategorizedAccount], List[XAccount]]:
         """
-        Retrieve cached categorizations if available and fresh.
+        Partition accounts into fresh cached vs needs categorization.
+
+        This enables partial cache hits: accounts that are already cached
+        and fresh are returned immediately, while missing/stale accounts
+        are identified for re-categorization.
 
         Args:
-            accounts: Accounts to check for cached data
+            accounts: Accounts to partition
 
         Returns:
-            Tuple of (categories, categorized_accounts) if cache is valid,
-            None otherwise
+            Tuple of (fresh_cached_accounts, accounts_to_categorize)
         """
-        # Get all cached accounts
-        cached_accounts = self.db_manager.get_all_accounts()
+        # Get user IDs to check
+        user_ids = [acc.user_id for acc in accounts]
 
-        if not cached_accounts:
-            return None
+        # Fetch only requested accounts from database (more efficient)
+        cached_lookup = self.db_manager.get_accounts_by_ids(user_ids)
 
-        # Create lookup by user_id
-        cached_lookup = {acc.user_id: acc for acc in cached_accounts}
-
-        # Check if all accounts are cached and fresh
-        categorized_accounts = []
+        fresh_cached = []
+        accounts_to_categorize = []
         cutoff_date = datetime.now() - timedelta(days=self.cache_expiry_days)
 
         for account in accounts:
             cached = cached_lookup.get(account.user_id)
-            if not cached or cached.analyzed_at < cutoff_date:
-                # Cache miss or stale data
-                return None
-            categorized_accounts.append(cached)
 
-        # Get categories metadata
-        categories = self.db_manager.get_categories()
-        if not categories:
-            return None
+            if cached and cached.analyzed_at >= cutoff_date:
+                # Fresh cached account
+                fresh_cached.append(cached)
+            else:
+                # Missing or stale, needs categorization
+                accounts_to_categorize.append(account)
 
-        categories_dict = {
-            "categories": categories,
-            "total_categories": len(categories),
-        }
-
-        return categories_dict, categorized_accounts
+        return fresh_cached, accounts_to_categorize
 
     def _save_categorization_results(
         self, categories_metadata: Dict, categorized_accounts: List[CategorizedAccount]

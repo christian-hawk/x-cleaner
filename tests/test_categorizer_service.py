@@ -98,7 +98,7 @@ async def test_categorize_accounts_without_cache(
     )
 
     mock_db = MagicMock()
-    mock_db.get_all_accounts.return_value = []
+    mock_db.get_accounts_by_ids.return_value = {}  # Empty cache
     mock_db.get_categories.return_value = []
 
     service = CategorizationService(grok_client=mock_grok, db_manager=mock_db)
@@ -124,7 +124,11 @@ async def test_categorize_accounts_with_fresh_cache(
     mock_grok.analyze_and_categorize = AsyncMock()
 
     mock_db = MagicMock()
-    mock_db.get_all_accounts.return_value = sample_categorized_accounts
+    # Return cached accounts by ID
+    mock_db.get_accounts_by_ids.return_value = {
+        "1": sample_categorized_accounts[0],
+        "2": sample_categorized_accounts[1],
+    }
     mock_db.get_categories.return_value = mock_categories["categories"]
 
     service = CategorizationService(
@@ -159,7 +163,11 @@ async def test_categorize_accounts_with_stale_cache(
     )
 
     mock_db = MagicMock()
-    mock_db.get_all_accounts.return_value = stale_accounts
+    # Return stale accounts by ID
+    mock_db.get_accounts_by_ids.return_value = {
+        "1": stale_accounts[0],
+        "2": stale_accounts[1],
+    }
     mock_db.get_categories.return_value = mock_categories["categories"]
 
     service = CategorizationService(
@@ -203,7 +211,8 @@ async def test_categorize_new_accounts_with_existing_categories(
 ):
     """Test categorizing new accounts with existing categories."""
     mock_grok = MagicMock()
-    mock_grok._categorize_with_discovered = AsyncMock(
+    # Use public method now
+    mock_grok.categorize_with_existing_categories = AsyncMock(
         return_value=sample_categorized_accounts
     )
 
@@ -214,8 +223,8 @@ async def test_categorize_new_accounts_with_existing_categories(
 
     categorized = await service.categorize_new_accounts(sample_accounts)
 
-    # Should use existing categories
-    mock_grok._categorize_with_discovered.assert_called_once()
+    # Should use existing categories (public method)
+    mock_grok.categorize_with_existing_categories.assert_called_once()
     assert len(categorized) == 2
     mock_db.save_accounts.assert_called_once()
 
@@ -275,3 +284,91 @@ async def test_categorize_empty_accounts():
 
     with pytest.raises(ValueError, match="No accounts provided"):
         await service.categorize_accounts([])
+
+
+@pytest.mark.asyncio
+async def test_categorize_accounts_partial_cache_hit(
+    sample_accounts, sample_categorized_accounts, mock_categories
+):
+    """Test partial cache hits - some accounts cached, some need categorization."""
+    # Only first account is cached
+    cached_account = sample_categorized_accounts[0]
+    new_account = sample_accounts[1]
+
+    # Create new categorized account for the second one
+    new_categorized = CategorizedAccount(
+        **new_account.model_dump(),
+        category="Art & Design",
+        confidence=0.90,
+        reasoning="Artist bio",
+        analyzed_at=datetime.now(),
+    )
+
+    mock_grok = MagicMock()
+    mock_grok.categorize_with_existing_categories = AsyncMock(
+        return_value=[new_categorized]
+    )
+
+    mock_db = MagicMock()
+    # Return only first account from cache
+    mock_db.get_accounts_by_ids.return_value = {"1": cached_account}
+    mock_db.get_categories.return_value = mock_categories["categories"]
+
+    service = CategorizationService(
+        grok_client=mock_grok, db_manager=mock_db, cache_expiry_days=7
+    )
+
+    categories, categorized = await service.categorize_accounts(sample_accounts)
+
+    # Should use existing categories method (not full discovery)
+    mock_grok.categorize_with_existing_categories.assert_called_once()
+
+    # Should only categorize the new account
+    call_args = mock_grok.categorize_with_existing_categories.call_args
+    accounts_sent = call_args[0][0]
+    assert len(accounts_sent) == 1
+    assert accounts_sent[0].user_id == "2"
+
+    # Should return both accounts (cached + newly categorized)
+    assert len(categorized) == 2
+
+    # Should save only new categorizations
+    mock_db.save_accounts.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_partition_accounts_by_cache_efficiency(
+    sample_accounts, sample_categorized_accounts
+):
+    """Test that partition method efficiently uses get_accounts_by_ids."""
+    mock_grok = MagicMock()
+    mock_db = MagicMock()
+
+    # Setup: first account cached and fresh, second is stale
+    fresh_account = sample_categorized_accounts[0]
+    stale_account = CategorizedAccount(
+        **sample_categorized_accounts[1].model_dump(exclude={"analyzed_at"}),
+        analyzed_at=datetime.now() - timedelta(days=10),
+    )
+
+    mock_db.get_accounts_by_ids.return_value = {
+        "1": fresh_account,
+        "2": stale_account,
+    }
+
+    service = CategorizationService(
+        grok_client=mock_grok, db_manager=mock_db, cache_expiry_days=7
+    )
+
+    fresh, to_categorize = service._partition_accounts_by_cache(sample_accounts)
+
+    # Should have called get_accounts_by_ids with correct IDs
+    mock_db.get_accounts_by_ids.assert_called_once_with(["1", "2"])
+
+    # Fresh account should be in fresh list
+    assert len(fresh) == 1
+    assert fresh[0].user_id == "1"
+
+    # Stale account should be in to_categorize list
+    assert len(to_categorize) == 1
+    assert to_categorize[0].user_id == "2"
