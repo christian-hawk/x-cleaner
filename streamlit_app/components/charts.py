@@ -2,14 +2,15 @@
 Chart components for Streamlit dashboard.
 
 This module provides reusable chart components using Plotly.
+All functions work with dictionaries or DataFrames to maintain proper
+layer separation (no direct backend imports).
 """
 
-from typing import List
+from typing import Any, Dict, List
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from backend.models import CategorizedAccount
 
 
 def category_distribution_pie_chart(category_stats: pd.DataFrame) -> go.Figure:
@@ -169,26 +170,33 @@ def verification_rate_chart(category_stats: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def top_accounts_chart(accounts: List[CategorizedAccount], n: int = 10) -> go.Figure:
+def top_accounts_chart(accounts: List[Dict[str, Any]], n: int = 10) -> go.Figure:
     """
     Create horizontal bar chart for top accounts by followers.
 
     Args:
-        accounts: List of categorized accounts
-        n: Number of top accounts to show
+        accounts: List of account dictionaries.
+        n: Number of top accounts to show.
 
     Returns:
-        Plotly figure
+        Plotly figure.
     """
     if not accounts:
         return go.Figure()
 
     # Sort by followers and take top N
-    sorted_accounts = sorted(accounts, key=lambda x: x.followers_count, reverse=True)[:n]
+    sorted_accounts = sorted(
+        accounts,
+        key=lambda account: account.get("followers_count", 0),
+        reverse=True
+    )[:n]
 
-    usernames = [f"@{acc.username}" for acc in sorted_accounts]
-    followers = [acc.followers_count for acc in sorted_accounts]
-    verified = ["✓ Verified" if acc.verified else "Not Verified" for acc in sorted_accounts]
+    usernames = [f"@{account.get('username', 'unknown')}" for account in sorted_accounts]
+    followers = [account.get("followers_count", 0) for account in sorted_accounts]
+    verified = [
+        "✓ Verified" if account.get("verified", False) else "Not Verified"
+        for account in sorted_accounts
+    ]
 
     fig = go.Figure(data=[
         go.Bar(

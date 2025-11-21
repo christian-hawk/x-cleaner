@@ -22,7 +22,6 @@ from streamlit_app.utils import (
     get_overall_stats,
     get_top_accounts_by_category,
     load_all_accounts,
-    load_categories,
 )
 
 # Page configuration
@@ -90,7 +89,6 @@ def main():
     with st.spinner("Loading data..."):
         try:
             accounts = load_all_accounts()
-            categories = load_categories()
 
             if not accounts:
                 st.warning("⚠️ No data found. Please run a scan first.")
@@ -101,12 +99,9 @@ def main():
             category_stats = calculate_category_stats(accounts)
             overall_stats = get_overall_stats(accounts)
 
-        except (FileNotFoundError, IOError):
-            st.error("❌ Could not load data from the database.")
-            st.info("Please ensure the database file exists and is not corrupted. You may need to run a scan using the CLI.")
-            st.stop()
-        except Exception:
-            st.error("❌ An unexpected error occurred while loading data.")
+        except Exception as error:
+            st.error(f"❌ Could not load data from API: {error}")
+            st.info("Please ensure the backend API is running: `python -m backend.main`")
             st.stop()
 
     # Hero Section - Key Metrics
@@ -212,14 +207,14 @@ def main():
             st.metric("Accounts", cat_row['Account Count'])
 
             # Get top 3 accounts in this category
-            top_accounts = get_top_accounts_by_category(accounts, cat_row['Category'], n=3)
+            top_accounts = get_top_accounts_by_category(category=cat_row['Category'], limit=3)
 
             st.markdown("**Top Accounts:**")
-            for i, acc in enumerate(top_accounts, 1):
-                verified_badge = "✓" if acc.verified else ""
+            for i, account in enumerate(top_accounts, 1):
+                verified_badge = "✓" if account.get("verified", False) else ""
                 st.markdown(
-                    f"{i}. **@{acc.username}** {verified_badge}  \n"
-                    f"   {format_number(acc.followers_count)} followers"
+                    f"{i}. **@{account.get('username')}** {verified_badge}  \n"
+                    f"   {format_number(account.get('followers_count', 0))} followers"
                 )
 
     st.markdown("---")

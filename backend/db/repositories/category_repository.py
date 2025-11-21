@@ -1,0 +1,66 @@
+"""
+Category repository for data access operations.
+
+Provides abstraction layer for category-related database operations
+following the Repository Pattern.
+"""
+
+from typing import Dict, List
+
+from backend.database import DatabaseManager
+
+
+class CategoryRepository:
+    """Repository for category data access operations."""
+
+    def __init__(self, database_manager: DatabaseManager):
+        """
+        Initialize category repository.
+
+        Args:
+            database_manager: Database manager instance for data access.
+        """
+        self._database = database_manager
+
+    def get_all_categories(self) -> Dict:
+        """
+        Retrieve all categories metadata from database.
+
+        Returns:
+            Dictionary containing categories metadata.
+        """
+        return self._database.get_categories()
+
+    def get_category_names(self) -> List[str]:
+        """
+        Retrieve list of all category names.
+
+        Returns:
+            List of category names.
+        """
+        categories_data = self._database.get_categories()
+        if not categories_data or "categories" not in categories_data:
+            return []
+
+        return [
+            category["name"]
+            for category in categories_data["categories"]
+        ]
+
+    def save_categories(self, categories_data: Dict) -> None:
+        """
+        Persist categories metadata to database.
+
+        Args:
+            categories_data: Dictionary containing categories metadata.
+        """
+        self._database.save_categories(categories_data)
+
+    def get_category_count(self) -> int:
+        """
+        Count total number of categories.
+
+        Returns:
+            Total category count.
+        """
+        return len(self.get_category_names())
