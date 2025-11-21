@@ -4,6 +4,8 @@ FastAPI application entry point for X-Cleaner API.
 Provides REST API endpoints for account data, categories, and statistics.
 """
 
+from typing import Dict
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -33,7 +35,7 @@ app.include_router(statistics.router)
 
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, str]:
     """
     Root endpoint providing API information.
 
@@ -50,7 +52,7 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, str]:
     """
     Health check endpoint for monitoring.
 

@@ -5,7 +5,7 @@ Provides dependency injection functions for services and repositories,
 following FastAPI's dependency injection pattern.
 """
 
-from typing import Generator
+from typing import Generator, Optional
 
 from backend.core.services.account_service import AccountService
 from backend.core.services.statistics_service import StatisticsService
@@ -30,7 +30,7 @@ def get_database() -> Generator[DatabaseManager, None, None]:
 
 
 def get_account_repository(
-    database: DatabaseManager = None,
+    database: Optional[DatabaseManager] = None,
 ) -> AccountRepository:
     """
     Dependency for account repository.
@@ -47,7 +47,7 @@ def get_account_repository(
 
 
 def get_category_repository(
-    database: DatabaseManager = None,
+    database: Optional[DatabaseManager] = None,
 ) -> CategoryRepository:
     """
     Dependency for category repository.
@@ -64,7 +64,7 @@ def get_category_repository(
 
 
 def get_account_service(
-    account_repository: AccountRepository = None,
+    account_repository: Optional[AccountRepository] = None,
 ) -> AccountService:
     """
     Dependency for account service.
@@ -81,8 +81,8 @@ def get_account_service(
 
 
 def get_statistics_service(
-    account_repository: AccountRepository = None,
-    category_repository: CategoryRepository = None,
+    account_repository: Optional[AccountRepository] = None,
+    category_repository: Optional[CategoryRepository] = None,
 ) -> StatisticsService:
     """
     Dependency for statistics service.
