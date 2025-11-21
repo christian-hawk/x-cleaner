@@ -5,9 +5,12 @@ This module provides a client for interacting with the X (Twitter) API v2
 to fetch user following data and account information.
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
-from typing import List, Optional, Tuple
+from types import TracebackType
+from typing import List, Optional, Tuple, Type
 
 import httpx
 from httpx import HTTPStatusError, RequestError
@@ -86,7 +89,9 @@ class XAPIClient:
             XAPIError: If API request fails
         """
         url = f"{self.BASE_URL}/users/{user_id}/following"
-        params = {
+
+        # Build params dict with explicit types for httpx
+        params: dict[str, str | int] = {
             "max_results": min(max_results, self.DEFAULT_MAX_RESULTS),
             "user.fields": (
                 "id,username,name,description,verified,created_at,"
@@ -239,10 +244,15 @@ class XAPIClient:
         """Close the HTTP client connection."""
         await self.client.aclose()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> XAPIClient:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         """Async context manager exit."""
         await self.close()

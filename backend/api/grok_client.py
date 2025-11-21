@@ -7,7 +7,7 @@ emergent categorization through a two-phase approach.
 
 import json
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from openai import AsyncOpenAI
 from tenacity import (
@@ -174,8 +174,16 @@ Respond with JSON:
             if not result_text:
                 raise GrokAPIError("Empty response from Grok API")
 
-            categories_data = self._extract_json(result_text)
-            return categories_data
+            # Parse and validate JSON response
+            json_response = self._extract_json(result_text)
+
+            # Ensure response is a dictionary (category discovery returns dict)
+            if not isinstance(json_response, dict):
+                raise GrokAPIError(
+                    f"Expected dict from category discovery, got {type(json_response)}"
+                )
+
+            return json_response
 
         except Exception as e:
             raise GrokAPIError(f"Category discovery failed: {str(e)}") from e
@@ -296,17 +304,47 @@ Respond as JSON array:
             if not result_text:
                 raise GrokAPIError("Empty response from Grok API")
 
-            categorizations = self._extract_json(result_text)
+            # Parse JSON response
+            json_response = self._extract_json(result_text)
+
+            # Extract categorizations list from response
+            categorizations_list: List[Dict[str, Any]]
+            if isinstance(json_response, list):
+                # Response is already a list of categorizations
+                categorizations_list = json_response
+            elif isinstance(json_response, dict):
+                # Response is a dict containing categorizations
+                nested_categorizations = json_response.get("categorizations", [])
+                if not isinstance(nested_categorizations, list):
+                    raise GrokAPIError(
+                        "Expected 'categorizations' field to be a list"
+                    )
+                categorizations_list = nested_categorizations
+            else:
+                raise GrokAPIError(
+                    f"Unexpected response type: {type(json_response)}"
+                )
 
             # Convert to CategorizedAccount objects
             categorized_accounts = []
-            for account, cat_data in zip(accounts, categorizations):
+            for account, categorization_data in zip(accounts, categorizations_list):
+                # Validate categorization data is a dictionary
+                if not isinstance(categorization_data, dict):
+                    raise GrokAPIError(
+                        f"Expected dict for categorization, got {type(categorization_data)}"
+                    )
+
+                # Extract and validate fields with defaults
+                category_value = categorization_data.get("category", "")
+                confidence_value = categorization_data.get("confidence", 0.0)
+                reasoning_value = categorization_data.get("reasoning", "")
+
                 categorized_accounts.append(
                     CategorizedAccount(
                         **account.model_dump(),
-                        category=cat_data["category"],
-                        confidence=cat_data["confidence"],
-                        reasoning=cat_data.get("reasoning"),
+                        category=str(category_value),
+                        confidence=float(confidence_value),
+                        reasoning=str(reasoning_value),
                     )
                 )
 
@@ -315,7 +353,7 @@ Respond as JSON array:
         except Exception as e:
             raise GrokAPIError(f"Batch categorization failed: {str(e)}") from e
 
-    def _extract_json(self, response_text: str) -> Dict:
+    def _extract_json(self, response_text: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Extract JSON from response (handles markdown formatting).
 
@@ -323,7 +361,7 @@ Respond as JSON array:
             response_text: Raw response text from Grok API
 
         Returns:
-            Parsed JSON dictionary
+            Parsed JSON as dictionary or list of dictionaries
 
         Raises:
             GrokAPIError: If JSON parsing fails
@@ -335,7 +373,18 @@ Respond as JSON array:
             elif "```" in response_text:
                 response_text = response_text.split("```")[1].split("```")[0]
 
-            return json.loads(response_text.strip())
+            # Parse the JSON response
+            parsed_result = json.loads(response_text.strip())
+
+            # Validate that result is either a dict or list of dicts
+            if isinstance(parsed_result, dict):
+                return parsed_result
+            elif isinstance(parsed_result, list):
+                return parsed_result
+            else:
+                raise GrokAPIError(
+                    f"Unexpected JSON type: expected dict or list, got {type(parsed_result)}"
+                )
         except (json.JSONDecodeError, IndexError) as e:
             raise GrokAPIError(f"Failed to parse JSON response: {str(e)}") from e
 
