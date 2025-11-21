@@ -25,6 +25,9 @@ def temp_db():
 @pytest.fixture
 def sample_categorized_accounts():
     """Sample categorized accounts for testing."""
+    # Use fixed timestamp for deterministic tests
+    # Use a recent date to ensure consistency across test runs
+    analyzed_at_time = datetime(2025, 11, 20, 12, 0, 0)
     return [
         CategorizedAccount(
             user_id="1",
@@ -38,7 +41,7 @@ def sample_categorized_accounts():
             category="Technology",
             confidence=0.95,
             reasoning="Clear tech focus",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
         CategorizedAccount(
             user_id="2",
@@ -52,7 +55,7 @@ def sample_categorized_accounts():
             category="Art",
             confidence=0.90,
             reasoning="Creative content",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
     ]
 

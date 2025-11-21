@@ -43,6 +43,9 @@ def sample_accounts():
 @pytest.fixture
 def sample_categorized_accounts():
     """Sample categorized accounts for testing."""
+    # Use fixed timestamp for deterministic tests
+    # Use a recent date to ensure it's considered "fresh" by cache logic
+    analyzed_at_time = datetime(2025, 11, 20, 12, 0, 0)
     return [
         CategorizedAccount(
             user_id="1",
@@ -56,7 +59,7 @@ def sample_categorized_accounts():
             category="Technology",
             confidence=0.95,
             reasoning="Clear tech focus",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
         CategorizedAccount(
             user_id="2",
@@ -70,7 +73,7 @@ def sample_categorized_accounts():
             category="Art & Design",
             confidence=0.90,
             reasoning="Artist bio",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
     ]
 
@@ -148,11 +151,13 @@ async def test_categorize_accounts_with_stale_cache(
     sample_accounts, sample_categorized_accounts, mock_categories
 ):
     """Test re-categorization when cache is stale."""
-    # Make cached accounts stale (10 days old)
+    # Make cached accounts stale (10 days old from recent fixed timestamp)
+    base_time = datetime(2025, 11, 20, 12, 0, 0)
+    stale_time = base_time - timedelta(days=10)
     stale_accounts = [
         CategorizedAccount(
             **acc.model_dump(exclude={"analyzed_at"}),
-            analyzed_at=datetime.now() - timedelta(days=10),
+            analyzed_at=stale_time,
         )
         for acc in sample_categorized_accounts
     ]
@@ -295,13 +300,14 @@ async def test_categorize_accounts_partial_cache_hit(
     cached_account = sample_categorized_accounts[0]
     new_account = sample_accounts[1]
 
-    # Create new categorized account for the second one
+    # Create new categorized account for the second one (use fixed timestamp)
+    analyzed_at_time = datetime(2025, 11, 20, 12, 0, 0)
     new_categorized = CategorizedAccount(
         **new_account.model_dump(),
         category="Art & Design",
         confidence=0.90,
         reasoning="Artist bio",
-        analyzed_at=datetime.now(),
+        analyzed_at=analyzed_at_time,
     )
 
     mock_grok = MagicMock()
@@ -344,11 +350,13 @@ async def test_partition_accounts_by_cache_efficiency(
     mock_grok = MagicMock()
     mock_db = MagicMock()
 
-    # Setup: first account cached and fresh, second is stale
+    # Setup: first account cached and fresh, second is stale (use fixed timestamps)
+    base_time = datetime(2025, 11, 20, 12, 0, 0)
+    stale_time = base_time - timedelta(days=10)
     fresh_account = sample_categorized_accounts[0]
     stale_account = CategorizedAccount(
         **sample_categorized_accounts[1].model_dump(exclude={"analyzed_at"}),
-        analyzed_at=datetime.now() - timedelta(days=10),
+        analyzed_at=stale_time,
     )
 
     mock_db.get_accounts_by_ids.return_value = {
