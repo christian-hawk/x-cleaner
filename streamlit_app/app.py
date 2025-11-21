@@ -101,8 +101,12 @@ def main():
             category_stats = calculate_category_stats(accounts)
             overall_stats = get_overall_stats(accounts)
 
-        except Exception as e:
-            st.error(f"❌ Error loading data: {str(e)}")
+        except (FileNotFoundError, IOError):
+            st.error("❌ Could not load data from the database.")
+            st.info("Please ensure the database file exists and is not corrupted. You may need to run a scan using the CLI.")
+            st.stop()
+        except Exception:
+            st.error("❌ An unexpected error occurred while loading data.")
             st.stop()
 
     # Hero Section - Key Metrics

@@ -1,16 +1,14 @@
 """
 Chart components for Streamlit dashboard.
 
-This module provides reusable chart components using Plotly and Altair.
+This module provides reusable chart components using Plotly.
 """
 
 from typing import List
 
-import altair as alt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
 from backend.models import CategorizedAccount
 
 

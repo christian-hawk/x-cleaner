@@ -4,11 +4,10 @@ Filter components for Streamlit dashboard.
 This module provides reusable filter components for account browsing.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import pandas as pd
 import streamlit as st
-from backend.models import CategorizedAccount
 
 
 def account_search_filters(

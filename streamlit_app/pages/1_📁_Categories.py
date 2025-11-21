@@ -8,12 +8,14 @@ allowing users to explore accounts within each category.
 import sys
 from pathlib import Path
 
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from streamlit_app.components import charts, filters
+from streamlit_app.components import charts
 from streamlit_app.utils import (
     accounts_to_dataframe,
     calculate_category_stats,
@@ -46,8 +48,12 @@ with st.spinner("Loading categories..."):
         accounts_df = accounts_to_dataframe(accounts)
         category_stats = calculate_category_stats(accounts)
 
-    except Exception as e:
-        st.error(f"❌ Error loading data: {str(e)}")
+    except (FileNotFoundError, IOError):
+        st.error("❌ Could not load data from the database.")
+        st.info("Please ensure the database file exists and is not corrupted. You may need to run a scan using the CLI.")
+        st.stop()
+    except Exception:
+        st.error("❌ An unexpected error occurred while loading data.")
         st.stop()
 
 # Sidebar - Category selector
@@ -73,15 +79,18 @@ with st.sidebar:
     )
 
     # Apply sorting
-    if sort_option == "Account Count (High to Low)":
-        filtered_categories = category_stats['Category'].tolist()
-    elif sort_option == "Name (A-Z)":
+    if sort_option == "Name (A-Z)":
         filtered_categories = sorted(filtered_categories)
     elif sort_option == "Name (Z-A)":
         filtered_categories = sorted(filtered_categories, reverse=True)
     elif sort_option == "Verification Rate":
+        # Sort filtered categories by verification rate
         filtered_stats = category_stats[category_stats['Category'].isin(filtered_categories)]
         filtered_categories = filtered_stats.sort_values('Verification Rate (%)', ascending=False)['Category'].tolist()
+    else:  # "Account Count (High to Low)"
+        # Re-sort filtered list based on original order (which is already by account count)
+        original_order = {cat: i for i, cat in enumerate(category_stats['Category'])}
+        filtered_categories.sort(key=lambda cat: original_order.get(cat, 999))
 
     # Display category list
     selected_category = st.radio(
@@ -168,7 +177,6 @@ if selected_category:
         with col1:
             st.markdown("### Follower Distribution")
             # Create histogram
-            import plotly.express as px
             fig = px.histogram(
                 category_df,
                 x='followers_count',
@@ -181,7 +189,6 @@ if selected_category:
         with col2:
             st.markdown("### Verification Status")
             verified_counts = category_df['verified'].value_counts()
-            import plotly.graph_objects as go
             fig = go.Figure(data=[
                 go.Pie(
                     labels=['Verified', 'Not Verified'],
@@ -281,7 +288,6 @@ if selected_category:
 
         # Engagement scatter
         st.markdown("#### Account Engagement Pattern")
-        import plotly.express as px
         fig = px.scatter(
             category_df,
             x='following_count',

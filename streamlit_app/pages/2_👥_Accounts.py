@@ -42,8 +42,12 @@ with st.spinner("Loading accounts..."):
 
         accounts_df = accounts_to_dataframe(accounts)
 
-    except Exception as e:
-        st.error(f"❌ Error loading data: {str(e)}")
+    except (FileNotFoundError, IOError):
+        st.error("❌ Could not load accounts from the database.")
+        st.info("Please ensure the database file exists and is not corrupted. You may need to run a scan using the CLI.")
+        st.stop()
+    except Exception:
+        st.error("❌ An unexpected error occurred while loading accounts.")
         st.stop()
 
 # Get unique categories
@@ -142,7 +146,6 @@ else:
                     st.metric("Tweets", format_number(row['tweet_count']))
 
                     # Confidence bar
-                    confidence_color = "green" if row['confidence'] >= 0.8 else "orange" if row['confidence'] >= 0.6 else "red"
                     st.progress(row['confidence'], text=f"Confidence")
 
                 # Additional info

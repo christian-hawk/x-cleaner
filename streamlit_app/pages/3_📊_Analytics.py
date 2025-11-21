@@ -68,8 +68,17 @@ with st.spinner("Loading analytics..."):
         accounts_df = accounts_to_dataframe(accounts)
         category_stats = calculate_category_stats(accounts)
 
-    except Exception as e:
-        st.error(f"❌ Error loading data: {str(e)}")
+        # Create analytics dataframe with calculated metrics for use across tabs
+        analytics_df = accounts_df.copy()
+        analytics_df['follower_following_ratio'] = analytics_df['followers_count'] / (analytics_df['following_count'] + 1)
+        analytics_df['tweets_per_follower'] = analytics_df['tweet_count'] / (analytics_df['followers_count'] + 1) * 1000
+
+    except (FileNotFoundError, IOError) as e:
+        st.error("❌ Could not load data from the database.")
+        st.info("Please ensure the database file exists and is not corrupted. You may need to run a scan using the CLI.")
+        st.stop()
+    except Exception:
+        st.error("❌ An unexpected error occurred while loading data.")
         st.stop()
 
 st.markdown("---")
@@ -176,11 +185,7 @@ with tab2:
     fig_scatter = charts.engagement_scatter_plot(accounts_df)
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # Calculate engagement metrics (work on a copy to avoid side effects)
-    analytics_df = accounts_df.copy()
-    analytics_df['follower_following_ratio'] = analytics_df['followers_count'] / (analytics_df['following_count'] + 1)
-    analytics_df['tweets_per_follower'] = analytics_df['tweet_count'] / (analytics_df['followers_count'] + 1) * 1000
-
+    # Use already calculated analytics_df from above
     col1, col2 = st.columns(2)
 
     with col1:
@@ -270,7 +275,7 @@ with col2:
 
 with col3:
     st.markdown("### 🌟 Most Engaged")
-    top_by_ratio = accounts_df.nlargest(5, 'follower_following_ratio')[['username', 'follower_following_ratio', 'category']]
+    top_by_ratio = analytics_df.nlargest(5, 'follower_following_ratio')[['username', 'follower_following_ratio', 'category']]
     for _, row in top_by_ratio.iterrows():
         st.markdown(f"**@{row['username']}**")
         st.caption(f"{row['follower_following_ratio']:.1f}x ratio • {row['category']}")

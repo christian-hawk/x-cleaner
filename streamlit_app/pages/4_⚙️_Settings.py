@@ -213,13 +213,13 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("### Dashboard Settings")
 
-    theme = st.selectbox("Theme", ["Light", "Dark", "Auto"], index=0)
+    _theme = st.selectbox("Theme", ["Light", "Dark", "Auto"], index=0)
     st.caption("Theme changes require a page reload")
 
-    items_per_page = st.number_input("Default Items Per Page", min_value=10, max_value=100, value=20, step=10)
+    _items_per_page = st.number_input("Default Items Per Page", min_value=10, max_value=100, value=20, step=10)
 
-    show_confidence = st.checkbox("Show Confidence Scores", value=True)
-    show_reasoning = st.checkbox("Show AI Reasoning", value=False)
+    _show_confidence = st.checkbox("Show Confidence Scores", value=True)
+    _show_reasoning = st.checkbox("Show AI Reasoning", value=False)
 
     st.markdown("---")
 

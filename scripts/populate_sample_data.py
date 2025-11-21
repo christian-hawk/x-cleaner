@@ -216,7 +216,7 @@ def main():
                 "name": name,
                 "description": f"Accounts focused on {name.lower()}",
                 "characteristics": info["keywords"],
-                "estimated_percentage": (info["count"] / len(accounts)) * 100
+                "estimated_percentage": (info["count"] / len(accounts)) * 100 if accounts else 0
             }
             for name, info in CATEGORIES.items()
         ]
