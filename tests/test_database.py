@@ -25,6 +25,9 @@ def temp_db():
 @pytest.fixture
 def sample_categorized_accounts():
     """Sample categorized accounts for testing."""
+    # Use fixed timestamp for deterministic tests
+    # Use a recent date to ensure consistency across test runs
+    analyzed_at_time = datetime(2025, 11, 20, 12, 0, 0)
     return [
         CategorizedAccount(
             user_id="1",
@@ -38,7 +41,7 @@ def sample_categorized_accounts():
             category="Technology",
             confidence=0.95,
             reasoning="Clear tech focus",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
         CategorizedAccount(
             user_id="2",
@@ -52,7 +55,7 @@ def sample_categorized_accounts():
             category="Art",
             confidence=0.90,
             reasoning="Creative content",
-            analyzed_at=datetime.now(),
+            analyzed_at=analyzed_at_time,
         ),
     ]
 
@@ -161,3 +164,34 @@ def test_data_directory_creation():
         # Check that parent directory was created
         assert db_path.parent.exists()
         assert db_path.exists()
+
+
+def test_get_accounts_by_ids(temp_db, sample_categorized_accounts):
+    """Test getting accounts by specific IDs."""
+    db = DatabaseManager(temp_db)
+
+    # Save accounts
+    db.save_accounts(sample_categorized_accounts)
+
+    # Get specific accounts by IDs
+    accounts = db.get_accounts_by_ids(["1", "2"])
+    assert len(accounts) == 2
+    assert "1" in accounts
+    assert "2" in accounts
+    assert accounts["1"].username == "techuser"
+    assert accounts["2"].username == "artistuser"
+
+    # Get subset
+    accounts = db.get_accounts_by_ids(["1"])
+    assert len(accounts) == 1
+    assert "1" in accounts
+
+    # Get with non-existent ID
+    accounts = db.get_accounts_by_ids(["1", "999"])
+    assert len(accounts) == 1
+    assert "1" in accounts
+    assert "999" not in accounts
+
+    # Empty list
+    accounts = db.get_accounts_by_ids([])
+    assert len(accounts) == 0

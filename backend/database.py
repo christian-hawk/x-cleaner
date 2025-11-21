@@ -172,6 +172,35 @@ class DatabaseManager:
         conn.close()
         return accounts
 
+    def get_accounts_by_ids(self, user_ids: List[str]) -> dict[str, CategorizedAccount]:
+        """
+        Get accounts by their user IDs.
+
+        Args:
+            user_ids: List of user IDs to fetch
+
+        Returns:
+            Dictionary mapping user_id to CategorizedAccount
+        """
+        if not user_ids:
+            return {}
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Build placeholders for SQL IN clause
+        placeholders = ",".join("?" * len(user_ids))
+        query = f"SELECT * FROM accounts WHERE user_id IN ({placeholders})"
+
+        cursor.execute(query, user_ids)
+        rows = cursor.fetchall()
+
+        accounts = {row["user_id"]: self._row_to_account(row) for row in rows}
+
+        conn.close()
+        return accounts
+
     def get_categories(self) -> List[dict]:
         """
         Get all categories with metadata.
