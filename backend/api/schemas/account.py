@@ -31,9 +31,9 @@ class AccountResponse(AccountBase):
 
     category: str = Field(..., description="Assigned category")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Categorization confidence score")
-    reasoning: str = Field(..., description="AI reasoning for categorization")
-    created_at: datetime = Field(..., description="Account creation date")
-    analyzed_at: datetime = Field(..., description="Analysis/categorization timestamp")
+    reasoning: str = Field("", description="AI reasoning for categorization")
+    created_at: Optional[datetime] = Field(None, description="Account creation date")
+    analyzed_at: Optional[datetime] = Field(None, description="Analysis/categorization timestamp")
 
     class Config:
         """Pydantic configuration."""

@@ -40,7 +40,7 @@ def _convert_account_to_response(account: CategorizedAccount) -> AccountResponse
         profile_image_url=account.profile_image_url,
         category=account.category,
         confidence=account.confidence,
-        reasoning=account.reasoning,
+        reasoning=account.reasoning or "",
         created_at=account.created_at,
         analyzed_at=account.analyzed_at,
     )

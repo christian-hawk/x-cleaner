@@ -5,7 +5,7 @@ Provides abstraction layer for category-related database operations
 following the Repository Pattern.
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from backend.database import DatabaseManager
 
@@ -22,12 +22,12 @@ class CategoryRepository:
         """
         self._database = database_manager
 
-    def get_all_categories(self) -> Dict:
+    def get_all_categories(self) -> List[Dict[str, Any]]:
         """
         Retrieve all categories metadata from database.
 
         Returns:
-            Dictionary containing categories metadata.
+            List of category dictionaries.
         """
         return self._database.get_categories()
 
@@ -38,16 +38,17 @@ class CategoryRepository:
         Returns:
             List of category names.
         """
-        categories_data = self._database.get_categories()
-        if not categories_data or "categories" not in categories_data:
+        categories_list = self._database.get_categories()
+        if not categories_list:
             return []
 
         return [
             category["name"]
-            for category in categories_data["categories"]
+            for category in categories_list
+            if "name" in category
         ]
 
-    def save_categories(self, categories_data: Dict) -> None:
+    def save_categories(self, categories_data: Dict[str, Any]) -> None:
         """
         Persist categories metadata to database.
 
@@ -63,4 +64,4 @@ class CategoryRepository:
         Returns:
             Total category count.
         """
-        return len(self.get_category_names())
+        return len(self.get_all_categories())
