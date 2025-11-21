@@ -9,7 +9,13 @@ import json
 import os
 from typing import Dict, List, Optional, Tuple
 
-from openai import OpenAI
+from openai import AsyncOpenAI
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from ..models import CategorizedAccount, XAccount
 
@@ -51,7 +57,9 @@ class GrokClient:
                 "variable or pass api_key parameter."
             )
 
-        self.client = OpenAI(api_key=self.api_key, base_url="https://api.x.ai/v1")
+        self.client = AsyncOpenAI(
+            api_key=self.api_key, base_url="https://api.x.ai/v1"
+        )
         self.discovered_categories: Optional[Dict] = None
 
     async def analyze_and_categorize(
@@ -89,9 +97,16 @@ class GrokClient:
 
         return categories, categorized
 
+    @retry(
+        retry=retry_if_exception_type(GrokAPIError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+    )
     async def _discover_categories(self, sample_accounts: List[XAccount]) -> Dict:
         """
         Phase 1: Discover natural categories from account data.
+
+        Implements retry logic with exponential backoff for API resilience.
 
         Args:
             sample_accounts: Sample of accounts for category discovery
@@ -100,7 +115,7 @@ class GrokClient:
             Dictionary containing discovered categories and metadata
 
         Raises:
-            GrokAPIError: If API request fails
+            GrokAPIError: If API request fails after retries
         """
         # Build account summaries
         accounts_summary = []
@@ -140,7 +155,7 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.DEFAULT_MODEL,
                 messages=[
                     {
@@ -195,6 +210,11 @@ Respond with JSON:
 
         return categorized
 
+    @retry(
+        retry=retry_if_exception_type(GrokAPIError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+    )
     async def _categorize_batch(
         self,
         accounts: List[XAccount],
@@ -203,6 +223,8 @@ Respond with JSON:
     ) -> List[CategorizedAccount]:
         """
         Categorize a batch of accounts.
+
+        Implements retry logic with exponential backoff for API resilience.
 
         Args:
             accounts: Batch of accounts to categorize
@@ -213,7 +235,7 @@ Respond with JSON:
             List of categorized accounts
 
         Raises:
-            GrokAPIError: If API request fails
+            GrokAPIError: If API request fails after retries
         """
         # Build account details
         accounts_info = []
@@ -255,7 +277,7 @@ Respond as JSON array:
 ]"""
 
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.DEFAULT_MODEL,
                 messages=[
                     {

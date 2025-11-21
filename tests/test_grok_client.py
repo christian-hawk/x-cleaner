@@ -6,7 +6,7 @@ category discovery and account categorization.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.api.grok_client import GrokClient, GrokAPIError
 from backend.models import XAccount, CategorizedAccount
@@ -96,20 +96,31 @@ async def test_discover_categories(sample_accounts, mock_category_response):
         client = GrokClient()
 
         # Mock OpenAI client response
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = f"```json\n{json.dumps(mock_category_response)}\n```"
+        mock_choice.message = mock_message
+
         mock_completion = MagicMock()
-        mock_completion.choices[0].message.content = f"```json\n{json.dumps(mock_category_response)}\n```"
-        client.client.chat.completions.create = MagicMock(
-            return_value=mock_completion
-        )
+        mock_completion.choices = [mock_choice]
 
-        # Execute
-        categories = await client._discover_categories(sample_accounts)
+        # Create async mock
+        async_mock = AsyncMock()
+        async_mock.return_value = mock_completion
 
-        # Assert
-        assert "categories" in categories
-        assert len(categories["categories"]) == 2
-        assert categories["categories"][0]["name"] == "Technology & Engineering"
-        assert categories["total_categories"] == 2
+        with patch.object(
+            client.client.chat.completions,
+            "create",
+            async_mock,
+        ):
+            # Execute
+            categories = await client._discover_categories(sample_accounts)
+
+            # Assert
+            assert "categories" in categories
+            assert len(categories["categories"]) == 2
+            assert categories["categories"][0]["name"] == "Technology & Engineering"
+            assert categories["total_categories"] == 2
 
 
 @pytest.mark.asyncio
@@ -123,28 +134,39 @@ async def test_categorize_batch(
         client = GrokClient()
 
         # Mock OpenAI client response
-        mock_completion = MagicMock()
-        mock_completion.choices[0].message.content = (
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = (
             f"```json\n{json.dumps(mock_categorization_response)}\n```"
         )
-        client.client.chat.completions.create = MagicMock(
-            return_value=mock_completion
-        )
+        mock_choice.message = mock_message
+
+        mock_completion = MagicMock()
+        mock_completion.choices = [mock_choice]
 
         category_names = [cat["name"] for cat in mock_category_response["categories"]]
 
-        # Execute
-        categorized = await client._categorize_batch(
-            sample_accounts, category_names, mock_category_response
-        )
+        # Create async mock
+        async_mock = AsyncMock()
+        async_mock.return_value = mock_completion
 
-        # Assert
-        assert len(categorized) == 2
-        assert isinstance(categorized[0], CategorizedAccount)
-        assert categorized[0].category == "Technology & Engineering"
-        assert categorized[0].confidence == 0.95
-        assert categorized[1].category == "Art & Design"
-        assert categorized[1].confidence == 0.90
+        with patch.object(
+            client.client.chat.completions,
+            "create",
+            async_mock,
+        ):
+            # Execute
+            categorized = await client._categorize_batch(
+                sample_accounts, category_names, mock_category_response
+            )
+
+            # Assert
+            assert len(categorized) == 2
+            assert isinstance(categorized[0], CategorizedAccount)
+            assert categorized[0].category == "Technology & Engineering"
+            assert categorized[0].confidence == 0.95
+            assert categorized[1].category == "Art & Design"
+            assert categorized[1].confidence == 0.90
 
 
 @pytest.mark.asyncio
@@ -199,31 +221,40 @@ async def test_analyze_and_categorize_full_flow(
         # Track call count to return different responses
         call_count = {"count": 0}
 
-        def mock_create(*args, **kwargs):
+        async def mock_create(*args, **kwargs):
             """Mock create method that returns different responses."""
             call_count["count"] += 1
-            mock_completion = MagicMock()
+
+            mock_choice = MagicMock()
+            mock_message = MagicMock()
 
             # First call is discovery
             if call_count["count"] == 1:
-                mock_completion.choices = [MagicMock()]
-                mock_completion.choices[0].message = MagicMock()
-                mock_completion.choices[0].message.content = (
+                mock_message.content = (
                     f"```json\n{json.dumps(mock_category_response)}\n```"
                 )
             # Subsequent calls are categorization
             else:
-                mock_completion.choices = [MagicMock()]
-                mock_completion.choices[0].message = MagicMock()
-                mock_completion.choices[0].message.content = (
+                mock_message.content = (
                     f"```json\n{json.dumps(mock_categorization_response)}\n```"
                 )
+
+            mock_choice.message = mock_message
+            mock_completion = MagicMock()
+            mock_completion.choices = [mock_choice]
+
             return mock_completion
 
-        client.client.chat.completions.create = MagicMock(side_effect=mock_create)
+        # Create async mock with side effect
+        async_mock = AsyncMock(side_effect=mock_create)
 
-        # Execute
-        categories, categorized = await client.analyze_and_categorize(sample_accounts)
+        with patch.object(
+            client.client.chat.completions,
+            "create",
+            async_mock,
+        ):
+            # Execute
+            categories, categorized = await client.analyze_and_categorize(sample_accounts)
 
         # Assert
         assert "categories" in categories
