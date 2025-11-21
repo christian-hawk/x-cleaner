@@ -24,6 +24,29 @@ from streamlit_app.utils import (
     load_all_accounts,
 )
 
+
+def categorize_activity(tweet_count: int) -> str:
+    """
+    Categorize account activity level based on tweet count.
+
+    Args:
+        tweet_count: Number of tweets
+
+    Returns:
+        Activity level category
+    """
+    if tweet_count < 100:
+        return 'Inactive'
+    elif tweet_count < 1000:
+        return 'Low Activity'
+    elif tweet_count < 10000:
+        return 'Moderate Activity'
+    elif tweet_count < 50000:
+        return 'High Activity'
+    else:
+        return 'Very High Activity'
+
+
 st.set_page_config(
     page_title="Analytics - X-Cleaner",
     page_icon="📊",
@@ -153,15 +176,16 @@ with tab2:
     fig_scatter = charts.engagement_scatter_plot(accounts_df)
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # Calculate engagement metrics
-    accounts_df['follower_following_ratio'] = accounts_df['followers_count'] / (accounts_df['following_count'] + 1)
-    accounts_df['tweets_per_follower'] = accounts_df['tweet_count'] / (accounts_df['followers_count'] + 1) * 1000
+    # Calculate engagement metrics (work on a copy to avoid side effects)
+    analytics_df = accounts_df.copy()
+    analytics_df['follower_following_ratio'] = analytics_df['followers_count'] / (analytics_df['following_count'] + 1)
+    analytics_df['tweets_per_follower'] = analytics_df['tweet_count'] / (analytics_df['followers_count'] + 1) * 1000
 
     col1, col2 = st.columns(2)
 
     with col1:
         # Follower/Following ratio by category
-        ratio_by_category = accounts_df.groupby('category')['follower_following_ratio'].mean().sort_values(ascending=False)
+        ratio_by_category = analytics_df.groupby('category')['follower_following_ratio'].mean().sort_values(ascending=False)
 
         fig = px.bar(
             x=ratio_by_category.values,
@@ -174,7 +198,7 @@ with tab2:
 
     with col2:
         # Tweet activity by category
-        tweets_by_category = accounts_df.groupby('category')['tweet_count'].mean().sort_values(ascending=False)
+        tweets_by_category = analytics_df.groupby('category')['tweet_count'].mean().sort_values(ascending=False)
 
         fig = px.bar(
             x=tweets_by_category.values,
@@ -190,22 +214,11 @@ with tab2:
 with tab3:
     st.markdown("### Activity Levels")
 
-    # Define activity levels based on tweet count
-    def categorize_activity(tweet_count):
-        if tweet_count < 100:
-            return 'Inactive'
-        elif tweet_count < 1000:
-            return 'Low Activity'
-        elif tweet_count < 10000:
-            return 'Moderate Activity'
-        elif tweet_count < 50000:
-            return 'High Activity'
-        else:
-            return 'Very High Activity'
+    # Work on a copy to avoid side effects
+    activity_df = accounts_df.copy()
+    activity_df['activity_level'] = activity_df['tweet_count'].apply(categorize_activity)
 
-    accounts_df['activity_level'] = accounts_df['tweet_count'].apply(categorize_activity)
-
-    activity_counts = accounts_df['activity_level'].value_counts()
+    activity_counts = activity_df['activity_level'].value_counts()
 
     col1, col2 = st.columns(2)
 
@@ -221,7 +234,7 @@ with tab3:
 
     with col2:
         # Activity by category
-        activity_by_category = pd.crosstab(accounts_df['category'], accounts_df['activity_level'])
+        activity_by_category = pd.crosstab(activity_df['category'], activity_df['activity_level'])
 
         fig = px.bar(
             activity_by_category,

@@ -255,7 +255,17 @@ def get_overall_stats(accounts: List[CategorizedAccount]) -> Dict[str, Any]:
         Dictionary of overall statistics
     """
     if not accounts:
-        return {}
+        return {
+            'total_accounts': 0,
+            'total_categories': 0,
+            'verified_count': 0,
+            'verification_rate': 0.0,
+            'avg_followers': 0,
+            'avg_following': 0,
+            'avg_tweets': 0,
+            'total_followers': 0,
+            'most_popular_category': None,
+        }
 
     df = accounts_to_dataframe(accounts)
 

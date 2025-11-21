@@ -21,7 +21,6 @@ from streamlit_app.utils import (
     export_to_json,
     format_account_card,
     format_number,
-    get_database,
     get_top_accounts_by_category,
     load_all_accounts,
 )
@@ -318,26 +317,24 @@ if selected_category:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Download as JSON", use_container_width=True):
-            json_data = export_to_json(category_accounts)
-            st.download_button(
-                label="💾 Download JSON",
-                data=json_data,
-                file_name=f"{selected_category.replace(' ', '_')}_accounts.json",
-                mime="application/json",
-                use_container_width=True
-            )
+        json_data = export_to_json(category_accounts)
+        st.download_button(
+            label="📄 Download JSON",
+            data=json_data,
+            file_name=f"{selected_category.replace(' ', '_')}_accounts.json",
+            mime="application/json",
+            use_container_width=True
+        )
 
     with col2:
-        if st.button("Download as CSV", use_container_width=True):
-            csv_data = export_to_csv(category_accounts)
-            st.download_button(
-                label="💾 Download CSV",
-                data=csv_data,
-                file_name=f"{selected_category.replace(' ', '_')}_accounts.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+        csv_data = export_to_csv(category_accounts)
+        st.download_button(
+            label="📊 Download CSV",
+            data=csv_data,
+            file_name=f"{selected_category.replace(' ', '_')}_accounts.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
 
 else:
     st.info("👈 Select a category from the sidebar to explore")

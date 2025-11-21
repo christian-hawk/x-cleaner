@@ -5,7 +5,7 @@ This page provides configuration options, scan management,
 and data export/import functionality.
 """
 
-import json
+import platform
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -201,13 +201,7 @@ with col2:
 
     st.markdown("---")
 
-    if st.button("🔄 Rebuild Database Indexes", use_container_width=True):
-        try:
-            db = get_database()
-            db._init_db()  # Reinitialize schema and indexes
-            st.success("✅ Database indexes rebuilt successfully")
-        except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+    st.info("💡 To rebuild database indexes or perform maintenance, use the CLI tools.")
 
 st.markdown("---")
 
@@ -299,8 +293,6 @@ st.markdown("---")
 
 # System Information
 with st.expander("🖥️ System Information"):
-    import platform
-
     system_info = {
         "Python Version": platform.python_version(),
         "Platform": platform.platform(),

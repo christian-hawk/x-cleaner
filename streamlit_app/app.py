@@ -14,11 +14,10 @@ import streamlit as st
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from streamlit_app.components import charts, filters
+from streamlit_app.components import charts
 from streamlit_app.utils import (
     accounts_to_dataframe,
     calculate_category_stats,
-    format_account_card,
     format_number,
     get_overall_stats,
     get_top_accounts_by_category,

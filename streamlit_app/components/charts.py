@@ -233,11 +233,14 @@ def engagement_scatter_plot(accounts_df: pd.DataFrame) -> go.Figure:
     if accounts_df.empty:
         return go.Figure()
 
+    # Work on a copy to avoid side effects
+    df = accounts_df.copy()
+
     # Add follower/following ratio
-    accounts_df['ratio'] = accounts_df['followers_count'] / (accounts_df['following_count'] + 1)
+    df['ratio'] = df['followers_count'] / (df['following_count'] + 1)
 
     fig = px.scatter(
-        accounts_df,
+        df,
         x='following_count',
         y='followers_count',
         color='category',
