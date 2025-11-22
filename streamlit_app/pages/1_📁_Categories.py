@@ -105,7 +105,7 @@ with st.sidebar:
 # Main content
 if selected_category:
     # Get category data
-    category_accounts = [acc for acc in accounts if acc.category == selected_category]
+    category_accounts = [acc for acc in accounts if acc.get("category") == selected_category]
     category_info = category_stats[category_stats['Category'] == selected_category].iloc[0]
 
     # Category header
@@ -151,7 +151,7 @@ if selected_category:
         st.markdown("### Top Accounts")
 
         # Top accounts by followers
-        top_accounts = get_top_accounts_by_category(accounts, selected_category, n=10)
+        top_accounts = get_top_accounts_by_category(selected_category, limit=10)
 
         col1, col2 = st.columns([2, 1])
 
@@ -162,10 +162,10 @@ if selected_category:
         with col2:
             st.markdown("#### Account Details")
             for i, acc in enumerate(top_accounts[:5], 1):
-                with st.expander(f"{i}. @{acc.username}"):
+                with st.expander(f"{i}. @{acc.get('username', '')}"):
                     st.markdown(format_account_card(acc))
-                    if acc.website:
-                        st.markdown(f"[Visit X Profile](https://x.com/{acc.username})")
+                    if acc.get("website"):
+                        st.markdown(f"[Visit X Profile](https://x.com/{acc.get('username', '')})")
 
         st.markdown("---")
 

@@ -19,7 +19,6 @@ from streamlit_app.utils import (
     export_to_csv,
     export_to_json,
     format_number,
-    get_database,
     load_all_accounts,
 )
 
@@ -68,11 +67,12 @@ with col2:
 
         if accounts:
             # Get most recent analysis date
-            most_recent = max(accounts, key=lambda x: x.analyzed_at)
+            most_recent = max(accounts, key=lambda x: x.get("analyzed_at", ""))
 
             st.success("✅ Data Available")
             st.metric("Total Accounts", format_number(len(accounts)))
-            st.metric("Last Scan", most_recent.analyzed_at.strftime("%Y-%m-%d %H:%M"))
+            analyzed_at_str = most_recent.get("analyzed_at", "Unknown")
+            st.metric("Last Scan", str(analyzed_at_str))
 
             st.markdown("---")
 
@@ -134,11 +134,11 @@ try:
             summary = {
                 "export_date": datetime.now().isoformat(),
                 "total_accounts": len(accounts),
-                "total_categories": len(set(acc.category for acc in accounts)),
-                "verified_count": sum(1 for acc in accounts if acc.verified),
-                "verification_rate": sum(1 for acc in accounts if acc.verified) / len(accounts) * 100,
-                "total_followers": sum(acc.followers_count for acc in accounts),
-                "avg_followers": sum(acc.followers_count for acc in accounts) / len(accounts),
+                "total_categories": len(set(acc.get("category", "") for acc in accounts)),
+                "verified_count": sum(1 for acc in accounts if acc.get("verified", False)),
+                "verification_rate": sum(1 for acc in accounts if acc.get("verified", False)) / len(accounts) * 100,
+                "total_followers": sum(acc.get("followers_count", 0) for acc in accounts),
+                "avg_followers": sum(acc.get("followers_count", 0) for acc in accounts) / len(accounts),
             }
 
             st.json(summary)
@@ -169,23 +169,11 @@ with col1:
     st.markdown("### Database Info")
 
     try:
-        db = get_database()
+        # Get record counts from API
+        accounts = load_all_accounts()
+        st.metric("Total Records", len(accounts))
 
-        # Get database file size
-        db_path = Path(db.db_path)
-        if db_path.exists():
-            size_bytes = db_path.stat().st_size
-            size_mb = size_bytes / (1024 * 1024)
-
-            st.metric("Database Size", f"{size_mb:.2f} MB")
-            st.metric("Database Path", db.db_path)
-
-            # Get record counts
-            accounts = load_all_accounts()
-            st.metric("Total Records", len(accounts))
-
-        else:
-            st.warning("⚠️ Database file not found")
+        st.info("💡 Database size information is available via the backend API")
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")

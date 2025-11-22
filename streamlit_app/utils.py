@@ -152,7 +152,8 @@ def export_to_csv(accounts: List[Dict[str, Any]]) -> str:
         CSV string.
     """
     dataframe = accounts_to_dataframe(accounts)
-    return dataframe.to_csv(index=False)
+    csv_string: str = dataframe.to_csv(index=False)
+    return csv_string
 
 
 def get_top_accounts_by_category(

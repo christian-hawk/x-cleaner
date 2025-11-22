@@ -59,7 +59,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def main():
+def main() -> None:
     """Main application function."""
 
     # Header

@@ -6,10 +6,13 @@ maintaining proper layer separation (Presentation → API).
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypeVar, Coroutine
 
 import httpx
 import streamlit as st
+
+# Type variable for run_async return type
+T = TypeVar("T")
 
 
 class XCleanerAPIClient:
@@ -25,7 +28,7 @@ class XCleanerAPIClient:
         self._base_url = base_url
         self._timeout = httpx.Timeout(30.0, connect=5.0)
 
-    async def _get(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
+    async def _get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Perform GET request to API.
 
@@ -45,7 +48,8 @@ class XCleanerAPIClient:
                 params=params or {},
             )
             response.raise_for_status()
-            return response.json()
+            json_response: Dict[str, Any] = response.json()
+            return json_response
 
     async def get_all_accounts(
         self,
@@ -64,7 +68,7 @@ class XCleanerAPIClient:
         Returns:
             List of account dictionaries.
         """
-        params = {
+        params: Dict[str, Any] = {
             "verified_only": verified_only,
         }
         if category:
@@ -73,7 +77,8 @@ class XCleanerAPIClient:
             params["minimum_followers"] = minimum_followers
 
         response = await self._get("/api/accounts", params=params)
-        return response.get("accounts", [])
+        accounts: List[Dict[str, Any]] = response.get("accounts", [])
+        return accounts
 
     async def get_top_accounts(
         self,
@@ -90,11 +95,13 @@ class XCleanerAPIClient:
         Returns:
             List of top account dictionaries.
         """
-        params = {"limit": limit}
+        params: Dict[str, Any] = {"limit": limit}
         if category:
             params["category"] = category
 
-        return await self._get("/api/accounts/top", params=params)
+        response = await self._get("/api/accounts/top", params=params)
+        accounts: List[Dict[str, Any]] = response.get("accounts", [])
+        return accounts
 
     async def search_accounts(self, query: str) -> List[Dict[str, Any]]:
         """
@@ -106,8 +113,10 @@ class XCleanerAPIClient:
         Returns:
             List of matching account dictionaries.
         """
-        params = {"query": query}
-        return await self._get("/api/accounts/search", params=params)
+        params: Dict[str, Any] = {"query": query}
+        response = await self._get("/api/accounts/search", params=params)
+        accounts: List[Dict[str, Any]] = response.get("results", [])
+        return accounts
 
     async def get_account_by_username(self, username: str) -> Dict[str, Any]:
         """
@@ -141,7 +150,8 @@ class XCleanerAPIClient:
             List of category statistics dictionaries.
         """
         response = await self._get("/api/statistics/categories")
-        return response.get("categories", [])
+        categories: List[Dict[str, Any]] = response.get("categories", [])
+        return categories
 
     async def get_engagement_metrics(self) -> Dict[str, Any]:
         """
@@ -155,7 +165,7 @@ class XCleanerAPIClient:
 
 # Synchronous wrappers for Streamlit (which doesn't support async directly)
 
-def run_async(coroutine):
+def run_async(coroutine: Coroutine[Any, Any, T]) -> T:
     """
     Run async coroutine synchronously for Streamlit.
 

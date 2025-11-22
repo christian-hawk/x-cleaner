@@ -240,7 +240,7 @@ st.markdown("### 📥 Export Filtered Results")
 col1, col2, col3 = st.columns(3)
 
 # Convert filtered dataframe back to account objects for export
-filtered_accounts = [acc for acc in accounts if acc.user_id in sorted_df['user_id'].tolist()]
+filtered_accounts = [acc for acc in accounts if acc.get("user_id") in sorted_df['user_id'].tolist()]
 
 with col1:
     json_data = export_to_json(filtered_accounts)
@@ -264,7 +264,7 @@ with col2:
 
 with col3:
     if st.button("📋 Copy Usernames", use_container_width=True):
-        usernames = "\n".join([f"@{acc.username}" for acc in filtered_accounts])
+        usernames = "\n".join([f"@{acc.get('username', '')}" for acc in filtered_accounts])
         st.code(usernames, language="text")
         st.info("Copy the usernames above to your clipboard")
 

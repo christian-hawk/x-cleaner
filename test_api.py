@@ -10,7 +10,7 @@ from backend.main import app
 from fastapi.testclient import TestClient
 
 
-def test_api_endpoints():
+def test_api_endpoints() -> None:
     """Test basic API endpoints."""
     client = TestClient(app)
 
