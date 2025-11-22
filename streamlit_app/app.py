@@ -9,6 +9,7 @@ category distribution, and top accounts.
 import sys
 from pathlib import Path
 
+import httpx
 import streamlit as st
 
 # Add parent directory to path for imports
@@ -100,7 +101,7 @@ def main() -> None:
             category_stats = calculate_category_stats(accounts)
             overall_stats = get_overall_stats(accounts)
 
-        except Exception as error:
+        except httpx.HTTPError as error:
             st.error(f"❌ Could not load data from API: {error}")
             st.info("Please ensure the backend API is running: `python -m backend.main`")
             st.stop()

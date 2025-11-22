@@ -41,7 +41,7 @@ def _convert_account_to_response(account: CategorizedAccount) -> AccountResponse
         category=account.category,
         confidence=account.confidence,
         reasoning=account.reasoning or "",
-        created_at=account.created_at,
+        x_account_created_at=account.x_account_created_at,
         analyzed_at=account.analyzed_at,
     )
 

@@ -32,7 +32,7 @@ class AccountResponse(AccountBase):
     category: str = Field(..., description="Assigned category")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Categorization confidence score")
     reasoning: str = Field(..., description="AI reasoning for categorization")
-    created_at: datetime = Field(..., description="Account creation date")
+    x_account_created_at: Optional[datetime] = Field(None, description="Account creation date on X/Twitter")
     analyzed_at: datetime = Field(..., description="Analysis/categorization timestamp")
 
     model_config = ConfigDict(
@@ -52,7 +52,7 @@ class AccountResponse(AccountBase):
                 "category": "Tech Entrepreneurs & Founders",
                 "confidence": 0.95,
                 "reasoning": "CEO of multiple tech companies, active in tech community",
-                "created_at": "2020-01-01T00:00:00Z",
+                "x_account_created_at": "2020-01-01T00:00:00Z",
                 "analyzed_at": "2025-01-20T15:30:00Z"
             }
         }

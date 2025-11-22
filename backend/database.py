@@ -49,7 +49,7 @@ class DatabaseManager:
                 display_name TEXT,
                 bio TEXT,
                 verified INTEGER,
-                created_at TEXT,
+                x_account_created_at TEXT,
                 followers_count INTEGER,
                 following_count INTEGER,
                 tweet_count INTEGER,
@@ -113,7 +113,7 @@ class DatabaseManager:
                     account.display_name,
                     account.bio,
                     int(account.verified),
-                    account.created_at.isoformat() if account.created_at else None,
+                    account.x_account_created_at.isoformat() if account.x_account_created_at else None,
                     account.followers_count,
                     account.following_count,
                     account.tweet_count,
@@ -266,8 +266,8 @@ class DatabaseManager:
             display_name=row["display_name"],
             bio=row["bio"],
             verified=bool(row["verified"]),
-            created_at=datetime.fromisoformat(row["created_at"])
-            if row["created_at"]
+            x_account_created_at=datetime.fromisoformat(row["x_account_created_at"])
+            if row["x_account_created_at"]
             else None,
             followers_count=row["followers_count"],
             following_count=row["following_count"],

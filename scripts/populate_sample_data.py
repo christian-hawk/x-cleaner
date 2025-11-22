@@ -163,9 +163,9 @@ def generate_sample_accounts():
             # Reasoning
             reasoning = f"Categorized as '{category}' based on bio keywords ('{keyword}'), account activity patterns, and follower demographics. High confidence due to clear professional focus."
 
-            # Created at (random date in past 5 years)
+            # X account created at (random date in past 5 years)
             days_ago = random.randint(30, 1825)
-            created_at = datetime.now() - timedelta(days=days_ago)
+            x_account_created_at = datetime.now() - timedelta(days=days_ago)
 
             # Analyzed at (recent)
             analyzed_at = datetime.now() - timedelta(hours=random.randint(1, 48))
@@ -176,7 +176,7 @@ def generate_sample_accounts():
                 display_name=display_name,
                 bio=bio,
                 verified=verified,
-                created_at=created_at,
+                x_account_created_at=x_account_created_at,
                 followers_count=followers_count,
                 following_count=following_count,
                 tweet_count=tweet_count,

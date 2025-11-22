@@ -230,7 +230,7 @@ class XAPIClient:
             display_name=user_data["name"],
             bio=user_data.get("description"),
             verified=user_data.get("verified", False),
-            created_at=user_data.get("created_at"),
+            x_account_created_at=user_data.get("created_at"),
             followers_count=metrics.get("followers_count", 0),
             following_count=metrics.get("following_count", 0),
             tweet_count=metrics.get("tweet_count", 0),

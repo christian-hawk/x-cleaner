@@ -23,7 +23,7 @@ class XAccount(BaseModel):
     display_name: str
     bio: Optional[str] = None
     verified: bool = False
-    created_at: Optional[datetime] = None
+    x_account_created_at: Optional[datetime] = None
     followers_count: int = 0
     following_count: int = 0
     tweet_count: int = 0
