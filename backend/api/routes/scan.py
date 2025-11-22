@@ -109,19 +109,20 @@ async def start_scan(
         HTTPException: If validation fails or scan already running
     """
     # Validate user_id
-    if not request.user_id or not request.user_id.strip():
+    user_id_cleaned = request.user_id.strip() if request.user_id else ""
+    if not user_id_cleaned:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_id is required and cannot be empty",
+            detail="user_id is required and cannot be empty. Provide a valid X user ID.",
         )
 
     # Validate user_id format (should be numeric string)
     try:
-        int(request.user_id.strip())
+        int(user_id_cleaned)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_id must be a valid numeric string",
+            detail=f"user_id must be a valid numeric string. Received: '{request.user_id}'. Example: '123456789'",
         ) from exc
 
     # Validate API credentials before starting scan
@@ -141,7 +142,7 @@ async def start_scan(
         )
 
     # Check if scan already running for this user
-    if _is_scan_active_for_user(request.user_id):
+    if _is_scan_active_for_user(user_id_cleaned):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A scan is already running for this user. Please wait for it to complete.",
@@ -155,7 +156,7 @@ async def start_scan(
     scan_status.status = "pending"
     scan_status.message = "Scan queued"
     _update_scan_status(job_id, scan_status)
-    _active_scans[request.user_id] = job_id
+    _active_scans[user_id_cleaned] = job_id
 
     # Define progress callback
     def progress_callback(status_update: ScanStatus) -> None:
@@ -167,7 +168,7 @@ async def start_scan(
         """Execute scan operation."""
         try:
             await scan_service.scan_and_categorize(
-                user_id=request.user_id,
+                user_id=user_id_cleaned,
                 progress_callback=progress_callback,
             )
         except ScanError as e:
@@ -185,7 +186,7 @@ async def start_scan(
                 scan_status.error = f"Unexpected error: {str(e)}"
                 _update_scan_status(job_id, scan_status)
         finally:
-            _clear_active_scan(request.user_id)
+            _clear_active_scan(user_id_cleaned)
 
     background_tasks.add_task(run_scan)
 

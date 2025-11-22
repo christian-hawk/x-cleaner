@@ -63,8 +63,18 @@ with col1:
         1. Enter your X User ID above, or
         2. Set `X_USER_ID` in your `.env` file
         """)
+        # Disable button if no user_id
+        st.button("🔄 Start New Scan", type="primary", use_container_width=True, disabled=True)
     else:
-        if st.button("🔄 Start New Scan", type="primary", use_container_width=True):
+        # Validate user_id is numeric before allowing scan
+        user_id_valid = True
+        try:
+            int(user_id_to_use)
+        except ValueError:
+            user_id_valid = False
+            st.error("❌ X User ID must be a numeric value (e.g., 123456789)")
+
+        if st.button("🔄 Start New Scan", type="primary", use_container_width=True, disabled=not user_id_valid):
             try:
                 from streamlit_app.api_client import start_scan_sync
 
@@ -78,6 +88,8 @@ with col1:
                 error_message = str(e)
                 if "already running" in error_message.lower():
                     st.warning("⚠️ A scan is already running for this user. Please wait for it to complete.")
+                elif "400" in error_message or "Bad Request" in error_message:
+                    st.error(f"❌ Invalid request: {error_message}. Please check that user_id is a valid numeric string.")
                 else:
                     st.error(f"❌ Error starting scan: {error_message}")
 
