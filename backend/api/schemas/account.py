@@ -5,9 +5,9 @@ Defines data models for account endpoints following REST API best practices.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AccountBase(BaseModel):
@@ -31,13 +31,12 @@ class AccountResponse(AccountBase):
 
     category: str = Field(..., description="Assigned category")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Categorization confidence score")
-    reasoning: str = Field("", description="AI reasoning for categorization")
-    created_at: Optional[datetime] = Field(None, description="Account creation date")
-    analyzed_at: Optional[datetime] = Field(None, description="Analysis/categorization timestamp")
+    reasoning: str = Field(..., description="AI reasoning for categorization")
+    created_at: datetime = Field(..., description="Account creation date")
+    analyzed_at: datetime = Field(..., description="Analysis/categorization timestamp")
 
-    class Config:
-        """Pydantic configuration."""
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "user_id": "123456789",
                 "username": "elonmusk",
@@ -57,11 +56,12 @@ class AccountResponse(AccountBase):
                 "analyzed_at": "2025-01-20T15:30:00Z"
             }
         }
+    )
 
 
 class AccountListResponse(BaseModel):
     """Schema for paginated account list response."""
 
-    accounts: list[AccountResponse] = Field(..., description="List of accounts")
+    accounts: List[AccountResponse] = Field(..., description="List of accounts")
     total: int = Field(..., ge=0, description="Total number of accounts")
     category: Optional[str] = Field(None, description="Filter category if applied")
