@@ -163,53 +163,118 @@ Trigger a new scan of X accounts.
 **Request Body:**
 ```json
 {
-  "user_id": "123456789",  // Optional, uses X_USER_ID from .env if not provided
-  "force_refresh": false    // Optional, default: false
-}
-```
-
-**Response:**
-```json
-{
-  "status": "started",
-  "message": "Scan initiated successfully",
   "user_id": "123456789"
 }
 ```
 
-**Errors:**
-- `409 Conflict`: Scan already in progress
-- `400 Bad Request`: User ID not provided and not configured
+**Response:**
+```json
+{
+  "job_id": "scan_abc123def456",
+  "status": "running",
+  "message": "Scan started successfully"
+}
+```
 
-#### `GET /api/scan/status`
-Get current scan status.
+**Status Codes:**
+- `202 Accepted`: Scan started successfully
+- `400 Bad Request`: Invalid request (missing/invalid user_id)
+- `409 Conflict`: Scan already in progress for this user
+- `500 Internal Server Error`: API credentials not configured
+
+**Example:**
+```bash
+curl -X POST http://localhost:8000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "123456789"}'
+```
+
+#### `GET /api/scan/{job_id}/status`
+Get scan status by job ID.
 
 **Response:**
 ```json
 {
-  "status": "running",        // idle | running | completed | error
-  "progress": 50,             // 0-100
+  "job_id": "scan_abc123def456",
+  "status": "running",
+  "progress": 45.5,
   "message": "Categorizing accounts...",
-  "total_accounts": 847,
-  "processed_accounts": 423
+  "error": null,
+  "started_at": "2025-01-20T15:30:00Z",
+  "completed_at": null
 }
 ```
 
+**Status Values:**
+- `pending`: Scan queued but not started
+- `running`: Scan in progress
+- `completed`: Scan finished successfully
+- `error`: Scan failed
+
+#### `GET /api/scan/{job_id}/progress`
+Get detailed scan progress by job ID.
+
+**Response:**
+```json
+{
+  "job_id": "scan_abc123def456",
+  "status": "running",
+  "progress": 45.5,
+  "current_step": "categorize_accounts",
+  "message": "Categorizing accounts...",
+  "current": 450,
+  "total": 1000,
+  "accounts_fetched": 1000,
+  "accounts_categorized": 450,
+  "accounts_saved": 0,
+  "error": null,
+  "started_at": "2025-01-20T15:30:00Z",
+  "completed_at": null
+}
+```
+
+**Progress Steps:**
+- `fetch_accounts` (0-30%): Fetching accounts from X API
+- `discover_categories` (30-50%): Discovering categories using Grok AI
+- `categorize_accounts` (50-90%): Categorizing all accounts
+- `save_to_database` (90-100%): Saving results to database
+
 ### WebSocket - Real-time Updates
 
-#### `WS /ws/scan`
+#### `WS /ws/scan/{job_id}`
 WebSocket endpoint for real-time scan progress updates.
 
 **Connection:**
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/scan');
+const ws = new WebSocket('ws://localhost:8000/ws/scan/scan_abc123def456');
 
 ws.onmessage = (event) => {
   const progress = JSON.parse(event.data);
   console.log(`Progress: ${progress.progress}%`);
   console.log(`Status: ${progress.status}`);
   console.log(`Message: ${progress.message}`);
+  
+  if (progress.status === 'completed') {
+    console.log('Scan complete!');
+    ws.close();
+  } else if (progress.status === 'error') {
+    console.error('Scan failed:', progress.message);
+    ws.close();
+  }
 };
+```
+
+**Message Format:**
+```json
+{
+  "type": "progress",
+  "job_id": "scan_abc123def456",
+  "status": "running",
+  "progress": 45.5,
+  "message": "Categorizing accounts...",
+  "current": 450,
+  "total": 1000
+}
 ```
 
 **Updates:**
@@ -290,12 +355,20 @@ curl -X POST http://localhost:8000/api/scan \
   -H "Content-Type: application/json" \
   -d '{"user_id": "123456789"}'
 
-# 3. Monitor progress
-curl http://localhost:8000/api/scan/status
+# Response includes job_id:
+# {"job_id": "scan_abc123def456", "status": "running", "message": "Scan started successfully"}
 
-# 4. Get results
-curl http://localhost:8000/api/stats
-curl http://localhost:8000/api/categories
+# 3. Check status using job_id
+curl http://localhost:8000/api/scan/scan_abc123def456/status
+
+# 4. Get detailed progress
+curl http://localhost:8000/api/scan/scan_abc123def456/progress
+
+# 5. Or use WebSocket for real-time updates (see WebSocket section above)
+
+# 6. Get results after completion
+curl http://localhost:8000/api/statistics/overall
+curl http://localhost:8000/api/statistics/categories
 ```
 
 ### 2. Explore Categories
@@ -314,24 +387,37 @@ curl "http://localhost:8000/api/accounts?verified=true&limit=10"
 ### 3. Real-time Monitoring (JavaScript)
 
 ```javascript
-// Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8000/ws/scan');
-
-// Trigger scan
+// 1. Trigger scan and get job_id
 fetch('http://localhost:8000/api/scan', {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({user_id: '123456789'})
+})
+.then(res => res.json())
+.then(data => {
+  const jobId = data.job_id;
+  console.log('Scan started with job_id:', jobId);
+  
+  // 2. Connect WebSocket using job_id
+  const ws = new WebSocket(`ws://localhost:8000/ws/scan/${jobId}`);
+  
+  ws.onmessage = (event) => {
+    const progress = JSON.parse(event.data);
+    console.log(`Progress: ${progress.progress}% - ${progress.message}`);
+    
+    if (progress.status === 'completed') {
+      console.log('Scan complete!');
+      ws.close();
+    } else if (progress.status === 'error') {
+      console.error('Scan failed:', progress.message);
+      ws.close();
+    }
+  };
+  
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
 });
-
-// Monitor progress
-ws.onmessage = (event) => {
-  const progress = JSON.parse(event.data);
-  if (progress.status === 'completed') {
-    console.log('Scan complete!');
-    ws.close();
-  }
-};
 ```
 
 ## Configuration
@@ -371,9 +457,10 @@ RELOAD=true
 ### Scan Not Starting
 
 Check:
-1. `.env` file exists with valid credentials
-2. X_USER_ID is set or provided in request
-3. No other scan is running (`GET /api/scan/status`)
+1. `.env` file exists with valid credentials (`X_API_BEARER_TOKEN` and `XAI_API_KEY`)
+2. `user_id` is provided in request body (must be numeric string)
+3. No other scan is running for the same user (check with `GET /api/scan/{job_id}/status`)
+4. Backend API server is running (`uvicorn backend.main:app --reload --port 8000`)
 
 ### Database Errors
 
