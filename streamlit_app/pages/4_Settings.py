@@ -283,7 +283,7 @@ with col2:
         st.code("""
 # X API Credentials
 X_API_BEARER_TOKEN=your_bearer_token_here
-X_USER_ID=your_user_id_here
+X_USERNAME=your_username_here
 
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here

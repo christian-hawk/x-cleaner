@@ -163,6 +163,13 @@ Trigger a new scan of X accounts.
 **Request Body:**
 ```json
 {
+  "username": "elonmusk"
+}
+```
+
+Or alternatively:
+```json
+{
   "user_id": "123456789"
 }
 ```
@@ -178,16 +185,25 @@ Trigger a new scan of X accounts.
 
 **Status Codes:**
 - `202 Accepted`: Scan started successfully
-- `400 Bad Request`: Invalid request (missing/invalid user_id)
+- `400 Bad Request`: Invalid request (missing username/user_id or username not found)
+- `404 Not Found`: Username not found on X
 - `409 Conflict`: Scan already in progress for this user
 - `500 Internal Server Error`: API credentials not configured
 
 **Example:**
 ```bash
+# Using username (recommended)
+curl -X POST http://localhost:8000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{"username": "elonmusk"}'
+
+# Or using user_id directly
 curl -X POST http://localhost:8000/api/scan \
   -H "Content-Type: application/json" \
   -d '{"user_id": "123456789"}'
 ```
+
+**Note:** If `username` is provided, the API will automatically look up the corresponding `user_id` before starting the scan.
 
 #### `GET /api/scan/{job_id}/status`
 Get scan status by job ID.
@@ -350,10 +366,10 @@ Visit http://localhost:8000/docs to:
 # 1. Check API health
 curl http://localhost:8000/health
 
-# 2. Trigger scan
+# 2. Trigger scan (using username - recommended)
 curl -X POST http://localhost:8000/api/scan \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "123456789"}'
+  -d '{"username": "elonmusk"}'
 
 # Response includes job_id:
 # {"job_id": "scan_abc123def456", "status": "running", "message": "Scan started successfully"}
@@ -387,11 +403,11 @@ curl "http://localhost:8000/api/accounts?verified=true&limit=10"
 ### 3. Real-time Monitoring (JavaScript)
 
 ```javascript
-// 1. Trigger scan and get job_id
+// 1. Trigger scan and get job_id (using username)
 fetch('http://localhost:8000/api/scan', {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({user_id: '123456789'})
+  body: JSON.stringify({username: 'elonmusk'})
 })
 .then(res => res.json())
 .then(data => {
@@ -429,7 +445,7 @@ Create a `.env` file with:
 ```bash
 # X API Credentials
 X_API_BEARER_TOKEN=your_bearer_token_here
-X_USER_ID=your_user_id_here
+X_USERNAME=your_username_here
 
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here
@@ -458,9 +474,10 @@ RELOAD=true
 
 Check:
 1. `.env` file exists with valid credentials (`X_API_BEARER_TOKEN` and `XAI_API_KEY`)
-2. `user_id` is provided in request body (must be numeric string)
-3. No other scan is running for the same user (check with `GET /api/scan/{job_id}/status`)
-4. Backend API server is running (`uvicorn backend.main:app --reload --port 8000`)
+2. `username` or `user_id` is provided in request body (username is recommended)
+3. Username exists on X (if using username, API will verify automatically)
+4. No other scan is running for the same user (check with `GET /api/scan/{job_id}/status`)
+5. Backend API server is running (`uvicorn backend.main:app --reload --port 8000`)
 
 ### Database Errors
 

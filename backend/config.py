@@ -24,7 +24,7 @@ class Config:
 
     # X API Configuration
     X_API_BEARER_TOKEN: str = os.getenv("X_API_BEARER_TOKEN", "")
-    X_USER_ID: str = os.getenv("X_USER_ID", "")
+    X_USERNAME: str = os.getenv("X_USERNAME", "")
 
     # Grok API Configuration
     XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
@@ -55,7 +55,6 @@ class Config:
         """
         required_fields = {
             "X_API_BEARER_TOKEN": cls.X_API_BEARER_TOKEN,
-            "X_USER_ID": cls.X_USER_ID,
             "XAI_API_KEY": cls.XAI_API_KEY,
         }
 
