@@ -4,17 +4,23 @@ Quick reference guide for implementing the X-Cleaner project with web dashboard.
 
 ## 🎯 Current Status
 
-**✅ IMPLEMENTED - Streamlit MVP Complete (v1.0-beta)**
+**⚠️ PARTIAL - Components Ready, Core Functionality Missing (v0.5-alpha)**
 
-All core phases (1-5) have been successfully implemented:
-- Phase 1: Foundation & Setup ✅
-- Phase 2: X API Integration ✅
-- Phase 3: Grok Integration ✅
-- Phase 4: FastAPI Backend ✅
-- Phase 5: Streamlit Web Dashboard ✅
-- Phase 6: Quality & Testing ✅
+Component implementation (Phases 1-6):
+- Phase 1: Foundation & Setup ✅ COMPLETE
+- Phase 2: X API Integration ⚠️ PARTIAL (client ready, no endpoint uses it)
+- Phase 3: Grok Integration ⚠️ PARTIAL (client ready, no endpoint uses it)
+- Phase 4: FastAPI Backend ⚠️ PARTIAL (read-only endpoints, no scan trigger)
+- Phase 5: Streamlit Web Dashboard ⚠️ PARTIAL (visualization only, no scan UI)
+- Phase 6: Quality & Testing ⚠️ PARTIAL (94% coverage of components, no integration test)
 
-**📋 NEXT: Phase 7 - Bulk Account Management**
+**🚧 CRITICAL GAP: Core Scan Functionality NOT Implemented**
+
+**📋 NEXT STEPS (In Order):**
+1. **Phase 5.5: Implement Scan Functionality** - POST /api/scan endpoint + orchestration service
+2. **Phase 5.6: Add Scan UI** - Scan trigger button + progress display in Streamlit
+3. Phase 7: Bulk Account Management
+4. Phase 8: Advanced Features
 
 ## Overview
 
@@ -29,20 +35,20 @@ This roadmap provides step-by-step instructions for building X-Cleaner with:
 
 ## 📚 Implementation Summary
 
-### ✅ What's Been Implemented
+### ✅ What's Been Implemented (Components Only)
 
-**Backend (100% Complete)**
-- ✅ X API v2 client with pagination and rate limiting
-- ✅ Grok AI integration with emergent categorization
-- ✅ FastAPI REST API with 15+ endpoints
+**Backend Components**
+- ✅ X API v2 client with pagination and rate limiting - **NOT USED YET**
+- ✅ Grok AI client with emergent categorization - **NOT USED YET**
+- ✅ FastAPI REST API with ~10 GET endpoints - **READ-ONLY**
 - ✅ 4-layer architecture (Presentation/API/Business/Data)
 - ✅ Repository pattern for data access
 - ✅ Service layer for business logic
 - ✅ Dependency injection
-- ✅ Comprehensive unit tests (94% coverage)
+- ✅ Comprehensive unit tests (94% coverage) - **COMPONENTS ONLY**
 
-**Frontend (100% Complete)**
-- ✅ Streamlit dashboard with 5 interactive pages
+**Frontend (Visualization Only)**
+- ✅ Streamlit dashboard with 5 interactive pages - **CANNOT TRIGGER SCANS**
 - ✅ Overview with key metrics and charts
 - ✅ Categories explorer
 - ✅ Accounts browser with search/filter
@@ -50,17 +56,44 @@ This roadmap provides step-by-step instructions for building X-Cleaner with:
 - ✅ Settings & management
 - ✅ Export functionality (JSON/CSV)
 
-**Quality Assurance (100% Complete)**
+**Quality Assurance**
 - ✅ GitHub Actions CI/CD (mypy + pylint)
 - ✅ Type safety with strict mypy
 - ✅ Code quality enforcement with pylint
-- ✅ 57 unit tests passing
-- ✅ Sample data generator
+- ✅ 57 unit tests passing - **COMPONENTS ONLY, NO INTEGRATION TEST**
+- ✅ Sample data generator - **FAKE DATA ONLY**
 - ✅ Deployment documentation
 
-### 📋 What's Next
+### ❌ What's NOT Implemented (CRITICAL)
 
-**Phase 7: Bulk Account Management** (Design complete, not implemented)
+**Core Scan Functionality - THE MAIN FEATURE**
+- ❌ ScanService to orchestrate: fetch accounts → categorize → save
+- ❌ POST /api/scan endpoint to trigger scans
+- ❌ Background task processing
+- ❌ WebSocket /ws/scan for real-time progress
+- ❌ Scan trigger UI in Streamlit dashboard
+- ❌ Real-time scan progress display
+- ❌ End-to-end integration test
+
+**Current Limitation:**
+The app can only display sample/fake data. It CANNOT scan real X accounts yet.
+
+### 🚧 What's Next (Priority Order)
+
+**Phase 5.5: Core Scan Functionality** ⚠️ **CRITICAL - MUST DO FIRST**
+- Implement ScanService orchestration
+- Add POST /api/scan endpoint
+- Background task processing
+- WebSocket for progress
+- Scan UI in dashboard
+- Integration test
+
+**Phase 5.6: Scan Progress UI**
+- Real-time progress display
+- Error handling UI
+- Scan history
+
+**Phase 7: Bulk Account Management** (After core works)
 - Unfollow entire category feature
 - Bulk selection with pagination persistence
 - Real-time progress tracking via WebSocket

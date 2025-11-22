@@ -23,32 +23,41 @@ X-Cleaner helps you understand your X network by automatically categorizing the 
 
 ## 🚀 Project Status
 
-**Current Version**: v1.0-beta (Streamlit MVP Complete)
+**Current Version**: v0.5-alpha (Components Ready, Core Functionality Pending)
 
-**✅ Implemented Features:**
-- Complete X API v2 integration with pagination and rate limiting
-- AI-powered categorization using xAI Grok (emergent category discovery)
-- FastAPI backend with REST API endpoints
-- Streamlit web dashboard with 5 interactive pages
+**✅ Implemented Components:**
+- X API v2 client with pagination and rate limiting
+- Grok AI client with emergent categorization logic
+- Database layer with repositories (SQLite + SQLAlchemy)
+- Service layer (AccountService, StatisticsService, CategorizationService)
+- FastAPI backend with REST API endpoints (READ-only, for existing data)
+- Streamlit web dashboard with 5 interactive pages (visualization only)
+- Sample data generator for testing/demo (900+ fake accounts)
 - Advanced analytics and visualizations (Plotly charts)
 - Data export (JSON/CSV)
-- Comprehensive test suite (94% coverage)
+- Comprehensive test suite (94% coverage of components)
 - CI/CD with GitHub Actions (mypy, pylint)
 
-**📊 Test Coverage:**
-- Repositories: 100%
-- Services: 85%+
-- Overall: 94%
+**❌ NOT Implemented (CORE FUNCTIONALITY):**
+- **Scan endpoint/command** to fetch real accounts from X API → categorize with Grok → save to DB
+- Web UI to trigger scans
+- Real-time scan progress tracking via WebSocket
+- Background task processing for scans
 
-**🏗️ Architecture:**
-- 4-layer architecture (Presentation/API/Business/Data)
-- Repository pattern for data access
-- Service layer for business logic
-- Dependency injection with FastAPI
+**📊 What Works Today:**
+- Generate sample data: `python scripts/populate_sample_data.py`
+- View dashboard: `streamlit run streamlit_app/app.py`
+- Explore 900+ fake accounts across 15 categories
 
-**🔜 Coming Next:**
-- Phase 7: Bulk account management (unfollow operations)
-- Phase 8: Advanced features (authentication, cloud deployment)
+**🔜 Next Steps (In Order):**
+1. **Implement scan functionality** - endpoint/service to execute: fetch → categorize → save
+2. **Add web UI to trigger scans** - button in Streamlit dashboard + progress display
+3. **WebSocket for real-time progress** - watch scan happen live
+4. Phase 7: Bulk account management (unfollow operations)
+5. Phase 8: Advanced features (authentication, cloud deployment)
+
+**⚠️ Current Limitation:**
+The project has all the building blocks but cannot yet scan real X accounts. You can only visualize sample/fake data.
 
 ## Quick Statistics Example
 
@@ -277,28 +286,33 @@ See **[Documentation](#documentation)** section for complete planning and implem
 - [x] Development environment configuration
 - [x] Documentation framework (ARCHITECTURE.md, CODE_CONVENTIONS.md)
 
-### Phase 2: X API Integration ✅ COMPLETE
+### Phase 2: X API Integration ⚠️ PARTIAL (Components Only)
 - [x] Implement X API client with async support
 - [x] Add pagination and rate limiting
 - [x] Create Pydantic data models
 - [x] Repository pattern for data access
 - [x] Comprehensive unit tests
+- [ ] **Scan endpoint/service to actually USE the client**
 
-### Phase 3: Grok Integration ✅ COMPLETE
+### Phase 3: Grok Integration ⚠️ PARTIAL (Components Only)
 - [x] Set up xAI SDK integration
 - [x] Implement emergent categorization (2-phase approach)
 - [x] Add confidence scoring
 - [x] Category discovery and assignment
 - [x] Service layer architecture
+- [ ] **Scan endpoint/service to actually USE the categorizer**
 
-### Phase 4: FastAPI Backend ✅ COMPLETE
-- [x] REST API endpoints (accounts, categories, statistics)
+### Phase 4: FastAPI Backend ⚠️ PARTIAL (Read-Only)
+- [x] REST API endpoints (accounts, categories, statistics) - READ ONLY
 - [x] Pydantic schemas for request/response
 - [x] Dependency injection
 - [x] 4-layer architecture (Presentation/API/Business/Data)
-- [x] Comprehensive test coverage (94%)
+- [x] Comprehensive test coverage (94% of components)
+- [ ] **POST /api/scan endpoint to trigger scans**
+- [ ] **WebSocket /ws/scan for real-time progress**
+- [ ] **Background task processing**
 
-### Phase 5: Web Dashboard (Streamlit) ✅ COMPLETE
+### Phase 5: Web Dashboard (Streamlit) ⚠️ PARTIAL (Visualization Only)
 - [x] Overview dashboard page with metrics
 - [x] Categories explorer with interactive charts
 - [x] Accounts browser with advanced search/filter
@@ -307,13 +321,24 @@ See **[Documentation](#documentation)** section for complete planning and implem
 - [x] Export functionality (JSON/CSV)
 - [x] Sample data generator
 - [x] Deployment documentation
+- [ ] **Scan trigger UI (button to start scan)**
+- [ ] **Real-time scan progress display**
 
-### Phase 6: Quality & Testing ✅ COMPLETE
+### Phase 5.5: Core Scan Functionality 🚧 **IN PROGRESS - PRIORITY**
+- [ ] Implement scan orchestration service
+- [ ] Create POST /api/scan endpoint
+- [ ] Add background task processing
+- [ ] WebSocket for real-time progress
+- [ ] Add scan UI to Streamlit dashboard
+- [ ] End-to-end integration test
+
+### Phase 6: Quality & Testing ⚠️ PARTIAL
 - [x] GitHub Actions for CI/CD (mypy, pylint)
-- [x] Unit tests (repositories, services)
+- [x] Unit tests (repositories, services) - 94% coverage of components
 - [x] Code quality standards enforcement
 - [x] Error handling improvements
 - [x] Type safety with mypy
+- [ ] **Integration test for full scan flow**
 
 ### Phase 7: Bulk Account Management 📋 PLANNED
 - [ ] Unfollow entire category feature

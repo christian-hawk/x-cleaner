@@ -948,7 +948,7 @@ The bulk account management feature allows users to efficiently clean up their X
 
 ---
 
-### Phase 2: X API Integration ✅ **COMPLETE**
+### Phase 2: X API Integration ⚠️ **PARTIAL - Components Only**
 
 **Tasks:**
 1. ✅ Implement X API authentication
@@ -959,19 +959,20 @@ The bulk account management feature allows users to efficiently clean up their X
 6. ✅ Implement data persistence (SQLite)
 7. ✅ Test with sample data
 8. ✅ Repository pattern for data access
+9. ❌ **Endpoint/service to EXECUTE scan using the client**
 
 **Deliverables:**
-- ✅ Working X API client (backend/api/x_client.py)
-- ✅ Ability to fetch all following accounts with pagination
-- ✅ Data stored in local database
+- ✅ Working X API client (backend/api/x_client.py) - tested in isolation
+- ⚠️ Ability to fetch all following accounts - client exists but no endpoint uses it
+- ✅ Data stored in local database - via sample data script only
 - ✅ AccountRepository with comprehensive methods
-- ✅ Unit tests with high coverage
+- ✅ Unit tests with high coverage - components only
 
-**Completed:** Phase 2 (#4)
+**Status:** Components implemented (#4), but not integrated into scan flow
 
 ---
 
-### Phase 3: Grok API Integration ✅ **COMPLETE**
+### Phase 3: Grok API Integration ⚠️ **PARTIAL - Components Only**
 
 **Tasks:**
 1. ✅ Set up xAI SDK
@@ -981,43 +982,47 @@ The bulk account management feature allows users to efficiently clean up their X
 5. ✅ Implement batch categorization
 6. ✅ Add confidence scoring
 7. ✅ Handle API errors and retries
-8. ✅ Test categorization accuracy
+8. ✅ Test categorization accuracy - in isolation
+9. ❌ **Endpoint/service to EXECUTE categorization in scan flow**
 
 **Deliverables:**
-- ✅ Working Grok integration (backend/api/grok_client.py)
-- ✅ Accurate account categorization
+- ✅ Working Grok integration (backend/api/grok_client.py) - tested in isolation
+- ⚠️ Accurate account categorization - logic exists but no endpoint uses it
 - ✅ Confidence scoring
 - ✅ CategoryRepository for category management
-- ✅ Categorizer service with business logic
+- ✅ Categorizer service with business logic - service exists but not called
 
-**Completed:** Phase 3 (#5)
+**Status:** Components implemented (#5), but not integrated into scan flow
 
 ---
 
-### Phase 4: FastAPI Backend ✅ **COMPLETE**
+### Phase 4: FastAPI Backend ⚠️ **PARTIAL - Read-Only Endpoints**
 
 **Tasks:**
 1. ✅ Set up FastAPI project structure
-2. ✅ Implement REST API endpoints (accounts, categories, statistics)
+2. ✅ Implement REST API endpoints (accounts, categories, statistics) - READ ONLY
 3. ✅ Create Pydantic schemas for request/response
 4. ✅ Implement dependency injection
 5. ✅ Add service layer (AccountService, StatisticsService)
 6. ✅ Implement 4-layer architecture
 7. ✅ Add CORS for frontend communication
-8. ✅ Test API endpoints
+8. ✅ Test API endpoints - GET endpoints only
+9. ❌ **POST /api/scan endpoint**
+10. ❌ **WebSocket /ws/scan for progress**
+11. ❌ **Background task queue**
 
 **Deliverables:**
-- ✅ Working REST API (backend/main.py)
+- ✅ Working REST API (backend/main.py) - for reading existing data only
 - ✅ Clean architecture with dependency injection
-- ✅ Comprehensive API endpoints
+- ⚠️ API endpoints - GET only, no scan trigger
 - ✅ API documentation (Swagger at /docs)
-- ✅ Unit tests (94% coverage)
+- ⚠️ Unit tests (94% coverage) - components only, no integration test
 
-**Completed:** Phase 4 (#6)
+**Status:** Read-only API implemented (#6), scan endpoints missing
 
 ---
 
-### Phase 5: Web Dashboard MVP ✅ **COMPLETE**
+### Phase 5: Web Dashboard ⚠️ **PARTIAL - Visualization Only**
 
 **Tasks:**
 1. ✅ Set up Streamlit application
@@ -1028,12 +1033,14 @@ The bulk account management feature allows users to efficiently clean up their X
 6. ✅ Add settings & management page
 7. ✅ Implement export functionality (JSON/CSV)
 8. ✅ Create sample data generator
-9. ✅ Deploy locally and test
+9. ✅ Deploy locally and test - with sample data only
 10. ✅ Write deployment documentation
+11. ❌ **Scan trigger button/UI**
+12. ❌ **Real-time scan progress display**
 
 **Deliverables:**
-- ✅ Functional web UI (Streamlit with 5 pages)
-- ✅ All core features working
+- ✅ Functional web UI (Streamlit with 5 pages) - visualization only
+- ⚠️ "Core features" - can only VIEW data, not SCAN
 - ✅ Interactive Plotly charts
 - ✅ Export capabilities
 - ✅ Local deployment ready
@@ -1041,11 +1048,37 @@ The bulk account management feature allows users to efficiently clean up their X
 - ✅ Deployment guide (docs/PHASE5_DEPLOYMENT.md)
 - ✅ Quick start guide (QUICKSTART.md)
 
-**Completed:** Phase 5 (#7)
+**Status:** Dashboard implemented (#7), but cannot trigger scans
 
 ---
 
-### Phase 6: Quality & Testing ✅ **COMPLETE**
+### Phase 5.5: Core Scan Functionality 🚧 **NEXT - CRITICAL**
+
+**Status:** Not started - this is the CORE functionality gap
+
+**Tasks:**
+1. Create ScanService to orchestrate: X API fetch → Grok categorize → DB save
+2. Add POST /api/scan endpoint to FastAPI
+3. Implement background task processing (FastAPI BackgroundTasks)
+4. Add WebSocket /ws/scan/{job_id} for real-time progress
+5. Create scan progress tracking (job status, current step, ETA)
+6. Add "Start Scan" button to Streamlit dashboard
+7. Add real-time progress UI in Streamlit (via WebSocket client)
+8. End-to-end integration test
+9. Error handling and retry logic
+
+**Deliverables:**
+- Working scan orchestration service
+- POST /api/scan endpoint
+- WebSocket for progress updates
+- Scan UI in dashboard
+- Full integration test (fetch → categorize → save → display)
+
+**This is what makes the app FUNCTIONAL instead of just a demo viewer**
+
+---
+
+### Phase 6: Quality & Testing ⚠️ **PARTIAL**
 
 **Tasks:**
 1. ✅ GitHub Actions for CI/CD (mypy, pylint)
@@ -1054,19 +1087,20 @@ The bulk account management feature allows users to efficiently clean up their X
 4. ✅ Code quality standards enforcement
 5. ✅ Error handling improvements
 6. ✅ Type safety with mypy strict mode
+7. ❌ **Integration test for scan flow**
 
 **Deliverables:**
 - ✅ CI/CD pipeline (.github/workflows/linting.yml)
-- ✅ Comprehensive test suite (tests/)
-- ✅ 94% overall test coverage
+- ✅ Comprehensive test suite (tests/) - components only
+- ⚠️ 94% overall test coverage - of components, not full flow
 - ✅ Type-safe codebase (mypy passing)
 - ✅ Clean code (pylint passing)
 
-**Completed:** Phases 4-5 included comprehensive testing
+**Status:** Components tested, integration missing
 
 ---
 
-**Alternative: React Dashboard (3-4 weeks)**
+**Alternative: React Dashboard (POSTPONED - not priority)**
 1. Set up React + TypeScript + Vite
 2. Design component architecture
 3. Implement routing (React Router)
