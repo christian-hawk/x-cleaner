@@ -7,8 +7,10 @@ Provides REST API endpoints for account data, categories, and statistics.
 from typing import Dict
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Load environment variables from .env file first
 load_dotenv()
@@ -37,6 +39,36 @@ app.add_middleware(
 app.include_router(accounts.router)
 app.include_router(statistics.router)
 app.include_router(scan.router)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """
+    Custom handler for validation errors to provide clearer error messages.
+    
+    Args:
+        request: FastAPI request object
+        exc: Validation error exception
+        
+    Returns:
+        JSON response with error details
+    """
+    errors = exc.errors()
+    error_messages = []
+    for error in errors:
+        field = ".".join(str(loc) for loc in error.get("loc", []))
+        message = error.get("msg", "Validation error")
+        error_messages.append(f"{field}: {message}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "detail": "; ".join(error_messages),
+            "errors": errors,
+        },
+    )
 
 
 @app.get("/")

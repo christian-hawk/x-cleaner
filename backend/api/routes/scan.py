@@ -111,9 +111,13 @@ async def start_scan(
     Raises:
         HTTPException: If validation fails or scan already running
     """
+    logger.info("Received scan request: username=%s, user_id=%s", request.username, request.user_id)
+    
     # Validate that either username or user_id is provided
     username_cleaned = request.username.strip() if request.username else ""
     user_id_provided = request.user_id.strip() if request.user_id else ""
+    
+    logger.info("After cleaning: username_cleaned='%s', user_id_provided='%s'", username_cleaned, user_id_provided)
 
     if not username_cleaned and not user_id_provided:
         raise HTTPException(
