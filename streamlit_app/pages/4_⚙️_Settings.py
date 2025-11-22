@@ -34,8 +34,9 @@ st.markdown("Configure X-Cleaner and manage your data")
 
 st.markdown("---")
 
-# Scan Management Section
+# Scan Management Section - MOVED TO TOP FOR VISIBILITY
 st.markdown("## 🔄 Scan Management")
+st.info("💡 **Start here!** Use the section below to scan your X network and categorize accounts.")
 
 col1, col2 = st.columns(2)
 
