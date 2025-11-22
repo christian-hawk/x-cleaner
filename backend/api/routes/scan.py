@@ -111,48 +111,77 @@ async def start_scan(
     Raises:
         HTTPException: If validation fails or scan already running
     """
-    logger.info("Received scan request: username=%s, user_id=%s", request.username, request.user_id)
+    logger.info("=== SCAN REQUEST RECEIVED ===")
+    logger.info("Raw request data - username=%r, user_id=%r", request.username, request.user_id)
+    logger.info("Request type - username type=%s, user_id type=%s", type(request.username).__name__, type(request.user_id).__name__)
     
     # Validate that either username or user_id is provided
     username_cleaned = request.username.strip() if request.username else ""
     user_id_provided = request.user_id.strip() if request.user_id else ""
     
-    logger.info("After cleaning: username_cleaned='%s', user_id_provided='%s'", username_cleaned, user_id_provided)
+    logger.info("After cleaning: username_cleaned=%r, user_id_provided=%r", username_cleaned, user_id_provided)
+    logger.info("Validation check: username_empty=%s, user_id_empty=%s", not username_cleaned, not user_id_provided)
 
     if not username_cleaned and not user_id_provided:
+        error_msg = "Either 'username' or 'user_id' is required. Provide a valid X username (e.g., 'elonmusk') or user ID (e.g., '123456789')."
+        logger.error("VALIDATION FAILED: %s", error_msg)
+        logger.error("Request details: username=%r, user_id=%r", request.username, request.user_id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Either 'username' or 'user_id' is required. Provide a valid X username (e.g., 'elonmusk') or user ID (e.g., '123456789').",
+            detail=error_msg,
         )
 
     # If username provided, convert to user_id
     user_id_cleaned = user_id_provided
     if username_cleaned:
+        logger.info("Username provided, looking up user_id for username=%r", username_cleaned)
         try:
             # Remove @ if present
             username_cleaned = username_cleaned.lstrip("@")
+            logger.info("Cleaned username (after @ removal): %r", username_cleaned)
             
             # Fetch user_id from username
+            logger.info("Calling x_client.get_user_by_username(%r)...", username_cleaned)
             account = await x_client.get_user_by_username(username_cleaned)
             if not account:
+                error_msg = f"Username '{username_cleaned}' not found on X. Please check the username and try again."
+                logger.error("USERNAME NOT FOUND: %s", error_msg)
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Username '{username_cleaned}' not found on X. Please check the username and try again.",
+                    detail=error_msg,
                 )
             user_id_cleaned = account.user_id
+            logger.info("Successfully resolved username %r to user_id=%r", username_cleaned, user_id_cleaned)
         except XAPIError as e:
+            error_msg = f"Failed to lookup username '{username_cleaned}': {str(e)}"
+            logger.error("X API ERROR during username lookup: %s", error_msg, exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to lookup username '{username_cleaned}': {str(e)}",
+                detail=error_msg,
             ) from e
+        except HTTPException:
+            raise
+        except Exception as e:
+            error_msg = f"Unexpected error looking up username '{username_cleaned}': {str(e)}"
+            logger.error("UNEXPECTED ERROR during username lookup: %s", error_msg, exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=error_msg,
+            ) from e
+    else:
+        logger.info("No username provided, using user_id directly: %r", user_id_cleaned)
 
     # Validate user_id format (should be numeric string)
+    logger.info("Validating user_id format: %r", user_id_cleaned)
     try:
         int(user_id_cleaned)
+        logger.info("user_id validation passed: %r is numeric", user_id_cleaned)
     except ValueError as exc:
+        error_msg = f"user_id must be a valid numeric string. Received: '{user_id_cleaned}'. This may indicate an error in username lookup."
+        logger.error("USER_ID VALIDATION FAILED: %s", error_msg)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"user_id must be a valid numeric string. Received: '{user_id_cleaned}'. This may indicate an error in username lookup.",
+            detail=error_msg,
         ) from exc
 
     # Validate API credentials before starting scan
