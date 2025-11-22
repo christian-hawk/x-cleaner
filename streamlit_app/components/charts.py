@@ -297,7 +297,7 @@ def category_comparison_radar(category_stats: pd.DataFrame, categories: List[str
         if metric != 'Verification Rate (%)':  # Already in percentage
             max_val = category_stats[metric].max()
             if max_val > 0:
-                normalized_data[metric] = (filtered_stats[metric] / max_val * 100)
+                normalized_data[metric] = filtered_stats[metric] / max_val * 100
 
     fig = go.Figure()
 

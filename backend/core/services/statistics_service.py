@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from backend.db.repositories.account_repository import AccountRepository
 from backend.db.repositories.category_repository import CategoryRepository
-from backend.models import CategorizedAccount
+
 
 
 class StatisticsService:

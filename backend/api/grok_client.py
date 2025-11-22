@@ -23,8 +23,6 @@ from ..models import CategorizedAccount, XAccount
 class GrokAPIError(Exception):
     """Custom exception for Grok API errors."""
 
-    pass
-
 
 class GrokClient:
     """
@@ -379,12 +377,11 @@ Respond as JSON array:
             # Validate that result is either a dict or list of dicts
             if isinstance(parsed_result, dict):
                 return parsed_result
-            elif isinstance(parsed_result, list):
+            if isinstance(parsed_result, list):
                 return parsed_result
-            else:
-                raise GrokAPIError(
-                    f"Unexpected JSON type: expected dict or list, got {type(parsed_result)}"
-                )
+            raise GrokAPIError(
+                f"Unexpected JSON type: expected dict or list, got {type(parsed_result)}"
+            )
         except (json.JSONDecodeError, IndexError) as e:
             raise GrokAPIError(f"Failed to parse JSON response: {str(e)}") from e
 

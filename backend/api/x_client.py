@@ -113,21 +113,20 @@ class XAPIClient:
                     f"Rate limit exceeded. Resets at: {reset_time}",
                     status_code=429,
                 ) from e
-            elif e.response.status_code == 401:
+            if e.response.status_code == 401:
                 raise XAPIError(
                     "Authentication failed. Check your Bearer Token.",
                     status_code=401,
                 ) from e
-            elif e.response.status_code == 404:
+            if e.response.status_code == 404:
                 raise XAPIError(
                     f"User ID {user_id} not found.",
                     status_code=404,
                 ) from e
-            else:
-                raise XAPIError(
-                    f"HTTP {e.response.status_code}: {e.response.text}",
-                    status_code=e.response.status_code,
-                ) from e
+            raise XAPIError(
+                f"HTTP {e.response.status_code}: {e.response.text}",
+                status_code=e.response.status_code,
+            ) from e
         except RequestError as e:
             raise XAPIError(f"Request failed: {str(e)}") from e
 

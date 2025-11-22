@@ -83,9 +83,9 @@ def account_search_filters(
 
     # Verified filter
     if verified_filter == "Verified Only":
-        filtered_df = filtered_df[filtered_df['verified'] == True]
+        filtered_df = filtered_df[filtered_df['verified'].astype(bool)]
     elif verified_filter == "Not Verified":
-        filtered_df = filtered_df[filtered_df['verified'] == False]
+        filtered_df = filtered_df[~filtered_df['verified'].astype(bool)]
 
     # Follower range filter
     filtered_df = filtered_df[
@@ -115,7 +115,7 @@ def sort_controls(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         Sorted DataFrame
     """
-    col1, col2 = st.columns([3, 1])
+    col1, _ = st.columns([3, 1])
 
     with col1:
         sort_by = st.selectbox(
@@ -139,16 +139,16 @@ def sort_controls(df: pd.DataFrame) -> pd.DataFrame:
     if "Followers" in sort_by:
         ascending = "Low to High" in sort_by
         return df.sort_values('followers_count', ascending=ascending)
-    elif "Following" in sort_by:
+    if "Following" in sort_by:
         ascending = "Low to High" in sort_by
         return df.sort_values('following_count', ascending=ascending)
-    elif "Tweets" in sort_by:
+    if "Tweets" in sort_by:
         ascending = "Low to High" in sort_by
         return df.sort_values('tweet_count', ascending=ascending)
-    elif "Username" in sort_by:
+    if "Username" in sort_by:
         ascending = "A-Z" in sort_by
         return df.sort_values('username', ascending=ascending)
-    elif "Confidence" in sort_by:
+    if "Confidence" in sort_by:
         ascending = "Low to High" in sort_by
         return df.sort_values('confidence', ascending=ascending)
 
@@ -174,7 +174,7 @@ def pagination_controls(
 
     total_pages = (total_items - 1) // items_per_page + 1
 
-    col1, col2, col3 = st.columns([2, 1, 2])
+    _, col2, _ = st.columns([2, 1, 2])
 
     with col2:
         page = st.number_input(

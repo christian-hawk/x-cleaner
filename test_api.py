@@ -5,9 +5,9 @@ Simple test script for X-Cleaner FastAPI endpoints.
 This script tests the basic functionality of the API without starting a server.
 """
 
-import asyncio
-from backend.main import app
 from fastapi.testclient import TestClient
+
+from backend.main import app
 
 
 def test_api_endpoints() -> None:
@@ -78,11 +78,11 @@ def test_api_endpoints() -> None:
     print("\n" + "=" * 60)
     print("✅ All tests passed!")
     print("\n📋 Summary:")
-    print(f"   - Total endpoints tested: 7")
-    print(f"   - All tests passed: ✅")
-    print(f"\n🚀 API is ready to use!")
-    print(f"   Start the server with: uvicorn backend.main:app --reload")
-    print(f"   API docs will be at: http://localhost:8000/docs")
+    print("   - Total endpoints tested: 7")
+    print("   - All tests passed: ✅")
+    print("\n🚀 API is ready to use!")
+    print("   Start the server with: uvicorn backend.main:app --reload")
+    print("   API docs will be at: http://localhost:8000/docs")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ intelligent caching to minimize API calls and costs.
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from ...api.grok_client import GrokAPIError, GrokClient
+from ...api.grok_client import GrokClient
 from ...database import DatabaseManager
 from ...models import CategorizedAccount, XAccount
 

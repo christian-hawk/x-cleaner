@@ -117,10 +117,9 @@ def format_number(number: int) -> str:
     """
     if number >= 1_000_000:
         return f"{number / 1_000_000:.1f}M"
-    elif number >= 1_000:
+    if number >= 1_000:
         return f"{number / 1_000:.1f}K"
-    else:
-        return str(number)
+    return str(number)
 
 
 def export_to_json(accounts: List[Dict[str, Any]]) -> str:

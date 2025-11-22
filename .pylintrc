@@ -20,7 +20,6 @@ disable=
     R0914,  # too-many-locals (refactor if too many)
     R0915,  # too-many-statements (refactor if too many)
     C0301,  # line-too-long (handled by Black)
-    C0330,  # bad-continuation (handled by Black)
 
 [BASIC]
 # Good variable names which should always be accepted
@@ -81,9 +80,6 @@ overgeneral-exceptions=BaseException,Exception
 [REPORTS]
 # Set the output format
 output-format=colorized
-
-# Include message's id in output
-include-ids=yes
 
 # Tells whether to display a full report or only the messages
 reports=no
