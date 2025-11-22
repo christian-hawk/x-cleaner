@@ -54,7 +54,11 @@ with col1:
         placeholder="Enter your X username (e.g., elonmusk)"
     )
 
-    username_to_use = username_input.strip().lstrip("@") if username_input.strip() else default_username.lstrip("@")
+    username_to_use = ""
+    if username_input and username_input.strip():
+        username_to_use = username_input.strip().lstrip("@")
+    elif default_username and default_username.strip():
+        username_to_use = default_username.strip().lstrip("@")
 
     if not username_to_use:
         st.warning("⚠️ Please provide a X Username to start a scan.")

@@ -201,10 +201,10 @@ class XCleanerAPIClient:
             Scan response with job_id.
         """
         json_data: Dict[str, Any] = {}
-        if username:
-            json_data["username"] = username
-        if user_id:
-            json_data["user_id"] = user_id
+        if username and username.strip():
+            json_data["username"] = username.strip().lstrip("@")
+        if user_id and user_id.strip():
+            json_data["user_id"] = user_id.strip()
         return await self._post("/api/scan", json_data=json_data)
 
     async def get_scan_status(self, job_id: str) -> Dict[str, Any]:

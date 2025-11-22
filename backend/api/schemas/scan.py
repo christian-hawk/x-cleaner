@@ -19,8 +19,11 @@ class ScanRequest(BaseModel):
     @model_validator(mode="after")
     def validate_at_least_one_provided(self) -> "ScanRequest":
         """Ensure at least username or user_id is provided."""
-        if not self.username and not self.user_id:
-            raise ValueError("Either 'username' or 'user_id' must be provided")
+        username_provided = self.username and self.username.strip()
+        user_id_provided = self.user_id and self.user_id.strip()
+        
+        if not username_provided and not user_id_provided:
+            raise ValueError("Either 'username' or 'user_id' must be provided (non-empty)")
         return self
     
     model_config = ConfigDict(
