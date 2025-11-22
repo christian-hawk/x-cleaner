@@ -270,7 +270,7 @@ class ScanService:
             accounts = await self._x_client.get_all_following(user_id)
             return accounts
         except XAPIError as e:
-            logger.error(f"Failed to fetch accounts for user {user_id}: {e}")
+            logger.error("Failed to fetch accounts for user %s: %s", user_id, e)
             raise
 
     async def _discover_categories(
@@ -299,7 +299,7 @@ class ScanService:
             # but we call it with all accounts and it handles sampling
             sample_size = min(200, len(accounts))  # Use sample for discovery
             sample_accounts = accounts[:sample_size]
-            
+
             # Call analyze_and_categorize with sample to discover categories
             # This will discover categories and categorize the sample
             categories_metadata, _ = await self._grok_client.analyze_and_categorize(
@@ -307,7 +307,7 @@ class ScanService:
             )
             return categories_metadata
         except GrokAPIError as e:
-            logger.error(f"Failed to discover categories: {e}")
+            logger.error("Failed to discover categories: %s", e)
             raise
 
     async def _categorize_accounts(
@@ -350,7 +350,7 @@ class ScanService:
 
             return categorized_accounts
         except GrokAPIError as e:
-            logger.error(f"Failed to categorize accounts: {e}")
+            logger.error("Failed to categorize accounts: %s", e)
             raise
 
     async def _save_results(
@@ -369,12 +369,13 @@ class ScanService:
             self._account_repository.save_accounts(categorized_accounts)
             self._category_repository.save_categories(categories_metadata)
             logger.info(
-                f"Saved {len(categorized_accounts)} accounts and "
-                f"{len(categories_metadata.get('categories', []))} categories"
+                "Saved %d accounts and %d categories",
+                len(categorized_accounts),
+                len(categories_metadata.get("categories", [])),
             )
         except Exception as e:
-            logger.error(f"Failed to save results to database: {e}")
-            raise ScanError(f"Database save failed: {str(e)}", step="save_to_database")
+            logger.error("Failed to save results to database: %s", e)
+            raise ScanError(f"Database save failed: {str(e)}", step="save_to_database") from e
 
     def _notify_progress(
         self,
@@ -392,4 +393,4 @@ class ScanService:
             try:
                 progress_callback(scan_status)
             except Exception as e:
-                logger.warning(f"Progress callback failed: {e}")
+                logger.warning("Progress callback failed: %s", e)

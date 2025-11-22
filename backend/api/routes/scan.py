@@ -118,11 +118,11 @@ async def start_scan(
     # Validate user_id format (should be numeric string)
     try:
         int(request.user_id.strip())
-    except ValueError:
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="user_id must be a valid numeric string",
-        )
+        ) from exc
 
     # Validate API credentials before starting scan
     x_api_token = os.getenv("X_API_BEARER_TOKEN")
@@ -171,14 +171,14 @@ async def start_scan(
                 progress_callback=progress_callback,
             )
         except ScanError as e:
-            logger.error(f"Scan {job_id} failed: {e}")
+            logger.error("Scan %s failed: %s", job_id, e)
             scan_status = _get_scan_status(job_id)
             if scan_status:
                 scan_status.status = "error"
                 scan_status.error = str(e)
                 _update_scan_status(job_id, scan_status)
         except Exception as e:
-            logger.error(f"Unexpected error in scan {job_id}: {e}", exc_info=True)
+            logger.error("Unexpected error in scan %s: %s", job_id, e, exc_info=True)
             scan_status = _get_scan_status(job_id)
             if scan_status:
                 scan_status.status = "error"
@@ -352,9 +352,9 @@ async def websocket_scan_progress(
                 break
 
     except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected for job {job_id}")
+        logger.info("WebSocket disconnected for job %s", job_id)
     except Exception as e:
-        logger.error(f"WebSocket error for job {job_id}: {e}", exc_info=True)
+        logger.error("WebSocket error for job %s: %s", job_id, e, exc_info=True)
         try:
             await websocket.send_json({
                 "type": "error",
