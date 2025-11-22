@@ -13,7 +13,7 @@ import streamlit as st
 from streamlit_app.api_client import XCleanerAPIClient, run_async
 
 
-def render_scan_progress(job_id: str) -> Dict[str, str]:
+def render_scan_progress(job_id: str) -> Dict[str, Optional[str]]:
     """
     Render scan progress component with real-time updates.
 
