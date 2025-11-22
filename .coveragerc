@@ -1,0 +1,36 @@
+# Coverage.py configuration
+# Note: Coverage is also configured in pyproject.toml (preferred)
+# This file is kept for compatibility with older tools
+
+[run]
+source = backend
+branch = true
+omit =
+    */tests/*
+    */venv/*
+    */.venv/*
+    */__pycache__/*
+    */test_*.py
+    */.pytest_cache/*
+    */migrations/*
+
+[report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+
+[html]
+directory = htmlcov
+title = X-Cleaner Coverage Report
+
+[xml]
+output = coverage.xml
