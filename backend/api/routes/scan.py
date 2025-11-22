@@ -153,12 +153,50 @@ async def start_scan(
             user_id_cleaned = account.user_id
             logger.info("Successfully resolved username %r to user_id=%r", username_cleaned, user_id_cleaned)
         except XAPIError as e:
-            error_msg = f"Failed to lookup username '{username_cleaned}': {str(e)}"
-            logger.error("X API ERROR during username lookup: %s", error_msg, exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_msg,
-            ) from e
+            # Map X API error codes to appropriate HTTP status codes
+            x_api_status = getattr(e, 'status_code', None)
+            logger.info("XAPIError caught - status_code=%s, message=%s", x_api_status, str(e))
+            
+            if x_api_status == 401:
+                error_msg = (
+                    f"X API authentication failed (401 Unauthorized). "
+                    f"Please check your X_API_BEARER_TOKEN in the .env file. "
+                    f"The token may be invalid, expired, or not properly configured."
+                )
+                logger.error("X API AUTHENTICATION ERROR: %s", error_msg)
+                logger.error("Original error: %s", str(e))
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=error_msg,
+                ) from e
+            elif x_api_status == 403:
+                error_msg = (
+                    f"X API access forbidden (403). "
+                    f"This may indicate that your API credentials don't have the required permissions, "
+                    f"or your Developer App is not properly attached to a Project."
+                )
+                logger.error("X API PERMISSION ERROR: %s", error_msg)
+                logger.error("Original error: %s", str(e))
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=error_msg,
+                ) from e
+            elif x_api_status == 404:
+                error_msg = f"Username '{username_cleaned}' not found on X. Please check the username and try again."
+                logger.error("USERNAME NOT FOUND: %s", error_msg)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=error_msg,
+                ) from e
+            else:
+                error_msg = f"Failed to lookup username '{username_cleaned}': {str(e)}"
+                logger.error("X API ERROR during username lookup: %s", error_msg, exc_info=True)
+                # Use 502 Bad Gateway for API errors (external service issue)
+                http_status = status.HTTP_502_BAD_GATEWAY if x_api_status else status.HTTP_400_BAD_REQUEST
+                raise HTTPException(
+                    status_code=http_status,
+                    detail=error_msg,
+                ) from e
         except HTTPException:
             raise
         except Exception as e:
