@@ -1,4 +1,5 @@
 # X-Cleaner: Account Scanner & Categorization Tool
+Project created to prove that, even trying hard, vibe coding with Claude will always sucks.
 
 An intelligent tool to scan, categorize, and analyze X (Twitter) accounts you follow using AI-powered analysis.
 
