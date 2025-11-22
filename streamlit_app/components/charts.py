@@ -44,7 +44,7 @@ def category_distribution_pie_chart(category_stats: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         showlegend=True,
         height=500,
-        margin=dict(t=50, l=0, r=0, b=0)
+        margin={"t": 50, "l": 0, "r": 0, "b": 0}
     )
 
     return fig
@@ -84,7 +84,7 @@ def category_distribution_bar_chart(category_stats: pd.DataFrame) -> go.Figure:
         height=max(400, len(category_stats) * 40),
         showlegend=False,
         yaxis={'categoryorder': 'total ascending'},
-        margin=dict(t=50, l=200, r=50, b=50)
+        margin={"t": 50, "l": 200, "r": 50, "b": 50}
     )
 
     return fig
@@ -124,7 +124,7 @@ def followers_distribution_box_plot(accounts_df: pd.DataFrame) -> go.Figure:
         height=500,
         showlegend=False,
         xaxis_tickangle=-45,
-        margin=dict(t=50, l=50, r=50, b=150)
+        margin={"t": 50, "l": 50, "r": 50, "b": 150}
     )
 
     return fig
@@ -164,7 +164,7 @@ def verification_rate_chart(category_stats: pd.DataFrame) -> go.Figure:
         showlegend=False,
         xaxis_tickangle=-45,
         yaxis_range=[0, 100],
-        margin=dict(t=50, l=50, r=50, b=150)
+        margin={"t": 50, "l": 50, "r": 50, "b": 150}
     )
 
     return fig
@@ -205,11 +205,11 @@ def top_accounts_chart(accounts: List[Dict[str, Any]], n: int = 10) -> go.Figure
             orientation='h',
             text=[f"{f:,}" for f in followers],
             textposition='outside',
-            marker=dict(
-                color=followers,
-                colorscale='Blues',
-                showscale=False
-            ),
+            marker={
+                "color": followers,
+                "colorscale": 'Blues',
+                "showscale": False
+            },
             hovertemplate='<b>%{y}</b><br>Followers: %{x:,}<extra></extra>',
             customdata=verified
         )
@@ -220,7 +220,7 @@ def top_accounts_chart(accounts: List[Dict[str, Any]], n: int = 10) -> go.Figure
         height=max(400, n * 50),
         yaxis={'categoryorder': 'total ascending'},
         xaxis_title='Followers',
-        margin=dict(t=50, l=150, r=100, b=50)
+        margin={"t": 50, "l": 150, "r": 100, "b": 50}
     )
 
     return fig
@@ -264,7 +264,7 @@ def engagement_scatter_plot(accounts_df: pd.DataFrame) -> go.Figure:
 
     fig.update_layout(
         height=600,
-        margin=dict(t=50, l=50, r=50, b=50)
+        margin={"t": 50, "l": 50, "r": 50, "b": 50}
     )
 
     return fig
@@ -314,12 +314,12 @@ def category_comparison_radar(category_stats: pd.DataFrame, categories: List[str
         ))
 
     fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100]
-            )
-        ),
+        polar={
+            "radialaxis": {
+                "visible": True,
+                "range": [0, 100]
+            }
+        },
         showlegend=True,
         title='Category Comparison (Normalized)',
         height=500
