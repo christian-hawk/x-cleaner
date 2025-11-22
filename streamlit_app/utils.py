@@ -27,7 +27,7 @@ def load_all_accounts() -> List[Dict[str, Any]]:
     Returns:
         List of account dictionaries from API.
     """
-    return get_all_accounts_sync()
+    return get_all_accounts_sync()  # type: ignore[no-any-return]
 
 
 def load_overall_statistics() -> Dict[str, Any]:
@@ -37,7 +37,7 @@ def load_overall_statistics() -> Dict[str, Any]:
     Returns:
         Overall statistics dictionary.
     """
-    return get_overall_statistics_sync()
+    return get_overall_statistics_sync()  # type: ignore[no-any-return]
 
 
 def load_category_statistics() -> List[Dict[str, Any]]:
@@ -47,7 +47,7 @@ def load_category_statistics() -> List[Dict[str, Any]]:
     Returns:
         List of category statistics dictionaries.
     """
-    return get_category_statistics_sync()
+    return get_category_statistics_sync()  # type: ignore[no-any-return]
 
 
 def accounts_to_dataframe(accounts: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -169,7 +169,7 @@ def get_top_accounts_by_category(
     Returns:
         List of top account dictionaries.
     """
-    return get_top_accounts_sync(limit=limit, category=category)
+    return get_top_accounts_sync(limit=limit, category=category)  # type: ignore[no-any-return]
 
 
 def format_account_card(account: Dict[str, Any]) -> str:
