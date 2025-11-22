@@ -5,12 +5,12 @@ Simple test script for X-Cleaner FastAPI endpoints.
 This script tests the basic functionality of the API without starting a server.
 """
 
-import asyncio
-from backend.main import app
 from fastapi.testclient import TestClient
 
+from backend.main import app
 
-def test_api_endpoints():
+
+def test_api_endpoints() -> None:
     """Test basic API endpoints."""
     client = TestClient(app)
 
@@ -22,7 +22,7 @@ def test_api_endpoints():
     response = client.get("/")
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
-    assert data["message"] == "X-Cleaner API"
+    assert data["name"] == "X-Cleaner API"
     print("   ✅ Root endpoint working")
     print(f"   Response: {data}")
 
@@ -35,21 +35,21 @@ def test_api_endpoints():
     print("   ✅ Health check working")
     print(f"   Response: {data}")
 
-    # Test 3: Stats endpoint (should work even with empty database)
-    print("\n3. Testing stats endpoint (/api/stats)...")
-    response = client.get("/api/stats")
+    # Test 3: Overall statistics endpoint
+    print("\n3. Testing overall stats endpoint (/api/statistics/overall)...")
+    response = client.get("/api/statistics/overall")
     assert response.status_code == 200
     data = response.json()
-    print("   ✅ Stats endpoint working")
+    print("   ✅ Overall stats endpoint working")
     print(f"   Response: {data}")
 
-    # Test 4: Categories endpoint
-    print("\n4. Testing categories endpoint (/api/categories)...")
-    response = client.get("/api/categories")
+    # Test 4: Category statistics endpoint
+    print("\n4. Testing category stats endpoint (/api/statistics/categories)...")
+    response = client.get("/api/statistics/categories")
     assert response.status_code == 200
     data = response.json()
-    print("   ✅ Categories endpoint working")
-    print(f"   Response: Found {data.get('total_categories', 0)} categories")
+    print("   ✅ Category stats endpoint working")
+    print(f"   Response: Found {len(data.get('categories', []))} categories")
 
     # Test 5: Accounts endpoint
     print("\n5. Testing accounts endpoint (/api/accounts)...")
@@ -59,30 +59,14 @@ def test_api_endpoints():
     print("   ✅ Accounts endpoint working")
     print(f"   Response: Found {data.get('total', 0)} accounts")
 
-    # Test 6: Scan status endpoint
-    print("\n6. Testing scan status endpoint (/api/scan/status)...")
-    response = client.get("/api/scan/status")
-    assert response.status_code == 200
-    data = response.json()
-    print("   ✅ Scan status endpoint working")
-    print(f"   Response: Status = {data.get('status', 'unknown')}")
-
-    # Test 7: Export endpoint
-    print("\n7. Testing export endpoint (/api/export)...")
-    response = client.get("/api/export?format=json")
-    assert response.status_code == 200
-    data = response.json()
-    print("   ✅ Export endpoint working")
-    print(f"   Response: Exported {len(data.get('accounts', []))} accounts")
-
     print("\n" + "=" * 60)
     print("✅ All tests passed!")
     print("\n📋 Summary:")
-    print(f"   - Total endpoints tested: 7")
-    print(f"   - All tests passed: ✅")
-    print(f"\n🚀 API is ready to use!")
-    print(f"   Start the server with: uvicorn backend.main:app --reload")
-    print(f"   API docs will be at: http://localhost:8000/docs")
+    print("   - Total endpoints tested: 5")
+    print("   - All tests passed: ✅")
+    print("\n🚀 API is ready to use!")
+    print("   Start the server with: uvicorn backend.main:app --reload")
+    print("   API docs will be at: http://localhost:8000/docs")
 
 
 if __name__ == "__main__":

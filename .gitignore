@@ -87,3 +87,7 @@ temp/
 reports/*.pdf
 reports/*.csv
 reports/*.json
+
+
+#Ignore cursor AI rules
+.cursor/rules/codacy.mdc

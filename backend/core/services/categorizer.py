@@ -6,9 +6,9 @@ intelligent caching to minimize API calls and costs.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from ...api.grok_client import GrokAPIError, GrokClient
+from ...api.grok_client import GrokClient
 from ...database import DatabaseManager
 from ...models import CategorizedAccount, XAccount
 
@@ -42,7 +42,7 @@ class CategorizationService:
 
     async def categorize_accounts(
         self, accounts: List[XAccount], force_refresh: bool = False
-    ) -> Tuple[Dict, List[CategorizedAccount]]:
+    ) -> Tuple[Dict[str, Any], List[CategorizedAccount]]:
         """
         Categorize accounts with intelligent partial caching.
 
@@ -67,10 +67,10 @@ class CategorizationService:
 
         # Get categories metadata (needed for return value)
         categories = self.db_manager.get_categories()
-        categories_dict = {
+        categories_dict: Dict[str, Any] = {
             "categories": categories,
             "total_categories": len(categories),
-        } if categories else None
+        } if categories else {"categories": [], "total_categories": 0}
 
         # If force refresh, skip cache entirely
         if force_refresh:

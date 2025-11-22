@@ -5,8 +5,9 @@ This module contains tests for the GrokClient class, including
 category discovery and account categorization.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from backend.api.grok_client import GrokClient, GrokAPIError
 from backend.models import XAccount, CategorizedAccount
@@ -178,12 +179,12 @@ async def test_extract_json_with_markdown():
         # Test with markdown
         response = '```json\n{"test": "value"}\n```'
         result = client._extract_json(response)
-        assert result["test"] == "value"
+        assert result["test"] == "value"  # type: ignore[call-overload]
 
         # Test without markdown
         response = '{"test": "value2"}'
         result = client._extract_json(response)
-        assert result["test"] == "value2"
+        assert result["test"] == "value2"  # type: ignore[call-overload]
 
 
 @pytest.mark.asyncio
