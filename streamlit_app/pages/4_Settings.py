@@ -43,43 +43,35 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("### Trigger New Scan")
 
-    # Get user_id from environment or allow input
+    # Get username from environment or allow input
     import os
-    default_user_id = os.getenv("X_USER_ID", "")
+    default_username = os.getenv("X_USERNAME", "")
 
-    user_id_input = st.text_input(
-        "X User ID",
-        value=default_user_id,
-        help="Your X (Twitter) user ID. Leave empty to use value from .env file.",
-        placeholder="Enter your X user ID"
+    username_input = st.text_input(
+        "X Username",
+        value=default_username,
+        help="Your X (Twitter) username (without @). Leave empty to use value from .env file.",
+        placeholder="Enter your X username (e.g., elonmusk)"
     )
 
-    user_id_to_use = user_id_input.strip() if user_id_input.strip() else default_user_id
+    username_to_use = username_input.strip().lstrip("@") if username_input.strip() else default_username.lstrip("@")
 
-    if not user_id_to_use:
-        st.warning("⚠️ Please provide a X User ID to start a scan.")
+    if not username_to_use:
+        st.warning("⚠️ Please provide a X Username to start a scan.")
         st.info("""
         You can:
-        1. Enter your X User ID above, or
-        2. Set `X_USER_ID` in your `.env` file
+        1. Enter your X Username above (e.g., elonmusk), or
+        2. Set `X_USERNAME` in your `.env` file
         """)
-        # Disable button if no user_id
+        # Disable button if no username
         st.button("🔄 Start New Scan", type="primary", use_container_width=True, disabled=True)
     else:
-        # Validate user_id is numeric before allowing scan
-        user_id_valid = True
-        try:
-            int(user_id_to_use)
-        except ValueError:
-            user_id_valid = False
-            st.error("❌ X User ID must be a numeric value (e.g., 123456789)")
-
-        if st.button("🔄 Start New Scan", type="primary", use_container_width=True, disabled=not user_id_valid):
+        if st.button("🔄 Start New Scan", type="primary", use_container_width=True):
             try:
                 from streamlit_app.api_client import start_scan_sync
 
                 with st.spinner("Starting scan..."):
-                    scan_response = start_scan_sync(user_id=user_id_to_use)
+                    scan_response = start_scan_sync(username=username_to_use)
                     job_id = scan_response.get("job_id")
                     st.session_state["current_scan_job_id"] = job_id
                     st.success(f"✅ Scan started! Job ID: {job_id}")
@@ -88,8 +80,10 @@ with col1:
                 error_message = str(e)
                 if "already running" in error_message.lower():
                     st.warning("⚠️ A scan is already running for this user. Please wait for it to complete.")
+                elif "404" in error_message or "not found" in error_message.lower():
+                    st.error(f"❌ Username not found: {error_message}. Please check that the username is correct.")
                 elif "400" in error_message or "Bad Request" in error_message:
-                    st.error(f"❌ Invalid request: {error_message}. Please check that user_id is a valid numeric string.")
+                    st.error(f"❌ Invalid request: {error_message}. Please check that username is valid.")
                 else:
                     st.error(f"❌ Error starting scan: {error_message}")
 

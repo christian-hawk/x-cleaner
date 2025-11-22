@@ -21,8 +21,9 @@ from backend.api.schemas.scan import (
     ScanStatus as ScanStatusSchema,
     WebSocketProgressMessage,
 )
+from backend.api.x_client import XAPIError, XAPIClient
 from backend.core.services.scan_service import ScanError, ScanService, ScanStatus
-from backend.dependencies import get_scan_service
+from backend.dependencies import get_scan_service, get_x_client
 
 logger = logging.getLogger(__name__)
 
@@ -93,14 +94,16 @@ async def start_scan(
     request: ScanRequest,
     background_tasks: BackgroundTasks,
     scan_service: ScanService = Depends(get_scan_service),
+    x_client: XAPIClient = Depends(get_x_client),
 ) -> ScanResponse:
     """
     Start a new scan operation.
 
     Args:
-        request: Scan request with user_id
+        request: Scan request with username or user_id
         background_tasks: FastAPI background tasks
         scan_service: Injected scan service
+        x_client: Injected X API client for username lookup
 
     Returns:
         Scan response with job_id
@@ -108,13 +111,36 @@ async def start_scan(
     Raises:
         HTTPException: If validation fails or scan already running
     """
-    # Validate user_id
-    user_id_cleaned = request.user_id.strip() if request.user_id else ""
-    if not user_id_cleaned:
+    # Validate that either username or user_id is provided
+    username_cleaned = request.username.strip() if request.username else ""
+    user_id_provided = request.user_id.strip() if request.user_id else ""
+
+    if not username_cleaned and not user_id_provided:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_id is required and cannot be empty. Provide a valid X user ID.",
+            detail="Either 'username' or 'user_id' is required. Provide a valid X username (e.g., 'elonmusk') or user ID (e.g., '123456789').",
         )
+
+    # If username provided, convert to user_id
+    user_id_cleaned = user_id_provided
+    if username_cleaned:
+        try:
+            # Remove @ if present
+            username_cleaned = username_cleaned.lstrip("@")
+            
+            # Fetch user_id from username
+            account = await x_client.get_user_by_username(username_cleaned)
+            if not account:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Username '{username_cleaned}' not found on X. Please check the username and try again.",
+                )
+            user_id_cleaned = account.user_id
+        except XAPIError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to lookup username '{username_cleaned}': {str(e)}",
+            ) from e
 
     # Validate user_id format (should be numeric string)
     try:
@@ -122,7 +148,7 @@ async def start_scan(
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"user_id must be a valid numeric string. Received: '{request.user_id}'. Example: '123456789'",
+            detail=f"user_id must be a valid numeric string. Received: '{user_id_cleaned}'. This may indicate an error in username lookup.",
         ) from exc
 
     # Validate API credentials before starting scan

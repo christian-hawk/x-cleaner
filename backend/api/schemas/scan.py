@@ -7,17 +7,26 @@ Defines data models for scan endpoints and WebSocket messages.
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class ScanRequest(BaseModel):
     """Schema for scan request body."""
 
-    user_id: str = Field(..., description="X user ID to scan following accounts for")
+    username: Optional[str] = Field(None, description="X username (without @) to scan following accounts for")
+    user_id: Optional[str] = Field(None, description="X user ID to scan following accounts for (alternative to username)")
+    
+    @model_validator(mode="after")
+    def validate_at_least_one_provided(self) -> "ScanRequest":
+        """Ensure at least username or user_id is provided."""
+        if not self.username and not self.user_id:
+            raise ValueError("Either 'username' or 'user_id' must be provided")
+        return self
+    
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "user_id": "123456789"
+                "username": "elonmusk"
             }
         }
     )

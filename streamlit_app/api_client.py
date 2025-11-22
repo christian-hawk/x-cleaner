@@ -185,17 +185,27 @@ class XCleanerAPIClient:
             json_response: Dict[str, Any] = response.json()
             return json_response
 
-    async def start_scan(self, user_id: str) -> Dict[str, Any]:
+    async def start_scan(
+        self,
+        username: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Start a new scan operation.
 
         Args:
-            user_id: X user ID to scan following accounts for.
+            username: X username (without @) to scan following accounts for.
+            user_id: X user ID to scan following accounts for (alternative to username).
 
         Returns:
             Scan response with job_id.
         """
-        return await self._post("/api/scan", json_data={"user_id": user_id})
+        json_data: Dict[str, Any] = {}
+        if username:
+            json_data["username"] = username
+        if user_id:
+            json_data["user_id"] = user_id
+        return await self._post("/api/scan", json_data=json_data)
 
     async def get_scan_status(self, job_id: str) -> Dict[str, Any]:
         """
@@ -339,18 +349,22 @@ def search_accounts_sync(query: str) -> List[Dict[str, Any]]:
     return run_async(client.search_accounts(query=query))
 
 
-def start_scan_sync(user_id: str) -> Dict[str, Any]:
+def start_scan_sync(
+    username: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Synchronous wrapper for start_scan.
 
     Args:
-        user_id: X user ID to scan following accounts for.
+        username: X username (without @) to scan following accounts for.
+        user_id: X user ID to scan following accounts for (alternative to username).
 
     Returns:
         Scan response with job_id.
     """
     client = XCleanerAPIClient()
-    return run_async(client.start_scan(user_id=user_id))
+    return run_async(client.start_scan(username=username, user_id=user_id))
 
 
 def get_scan_status_sync(job_id: str) -> Dict[str, Any]:
