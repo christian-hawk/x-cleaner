@@ -9,6 +9,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from tenacity import (
     retry,
@@ -18,6 +19,9 @@ from tenacity import (
 )
 
 from ..models import CategorizedAccount, XAccount
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class GrokAPIError(Exception):

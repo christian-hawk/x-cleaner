@@ -14,8 +14,12 @@ from typing import List, Optional, Tuple, Type
 
 import httpx
 from httpx import HTTPStatusError, RequestError
+from dotenv import load_dotenv
 
 from ..models import XAccount
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class XAPIError(Exception):
