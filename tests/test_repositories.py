@@ -4,7 +4,7 @@ import pytest
 from backend.database import DatabaseManager
 from backend.db.repositories.account_repository import AccountRepository
 from backend.db.repositories.category_repository import CategoryRepository
-from backend.models import CategorizedAccount, XAccount
+from backend.models import CategorizedAccount
 
 
 @pytest.fixture

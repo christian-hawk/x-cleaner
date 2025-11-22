@@ -117,7 +117,7 @@ def generate_sample_accounts():
     user_id_counter = 1000000
 
     for category, info in CATEGORIES.items():
-        for i in range(info["count"]):
+        for i in range(info["count"]):  # type: ignore[arg-type]
             user_id_counter += 1
 
             # Generate username
@@ -127,11 +127,11 @@ def generate_sample_accounts():
             display_name = f"{random.choice(['John', 'Jane', 'Alex', 'Sam', 'Chris', 'Taylor'])} {random.choice(['Smith', 'Johnson', 'Williams', 'Brown', 'Davis', 'Miller'])}"
 
             # Generate bio
-            keyword = random.choice(info["keywords"])
+            keyword: str = random.choice(info["keywords"])  # type: ignore[arg-type]
             bio = f"{keyword} enthusiast | Sharing insights about {keyword.lower()} | Building the future"
 
             # Determine if verified
-            verified = random.random() < info["verified_rate"]
+            verified = random.random() < info["verified_rate"]  # type: ignore[operator]
 
             # Generate follower count (log-normal distribution)
             followers_base = info["avg_followers"]
@@ -139,7 +139,7 @@ def generate_sample_accounts():
                 random.uniform(8, 12),
                 random.uniform(0.8, 1.5)
             ))
-            followers_count = max(100, min(followers_count, followers_base * 5))
+            followers_count = max(100, min(followers_count, followers_base * 5))  # type: ignore[operator]
 
             # Following count (inversely related to followers for influencers)
             following_count = int(random.uniform(100, 2000))
@@ -216,7 +216,7 @@ def main():
                 "name": name,
                 "description": f"Accounts focused on {name.lower()}",
                 "characteristics": info["keywords"],
-                "estimated_percentage": (info["count"] / len(accounts)) * 100 if accounts else 0
+                "estimated_percentage": (info["count"] / len(accounts)) * 100 if accounts else 0  # type: ignore[operator]
             }
             for name, info in CATEGORIES.items()
         ]

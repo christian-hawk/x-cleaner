@@ -20,7 +20,6 @@ disable=
     R0914,  # too-many-locals (refactor if too many)
     R0915,  # too-many-statements (refactor if too many)
     C0301,  # line-too-long (handled by Black)
-    C0330,  # bad-continuation (handled by Black)
 
 [BASIC]
 # Good variable names which should always be accepted
@@ -76,7 +75,7 @@ deprecated-modules=optparse,tkinter.tix
 
 [EXCEPTIONS]
 # Exceptions that will emit a warning when being caught
-overgeneral-exceptions=BaseException,Exception
+overgeneral-exceptions=builtins.BaseException,builtins.Exception
 
 [REPORTS]
 # Set the output format

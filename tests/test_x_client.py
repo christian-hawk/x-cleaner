@@ -5,8 +5,9 @@ This module contains tests for the XAPIClient class, including
 mocked API responses and error handling.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from backend.api.x_client import XAPIClient, XAPIError
 from backend.models import XAccount
@@ -49,7 +50,7 @@ async def test_get_following_success(mock_response_data):
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status = MagicMock()
 
-        client.client.get = AsyncMock(return_value=mock_response)
+        client.client.get = AsyncMock(return_value=mock_response)  # type: ignore[method-assign]
 
         # Execute
         accounts, next_token = await client.get_following("test_user_id")
@@ -79,7 +80,7 @@ async def test_get_following_rate_limit():
             headers={"x-rate-limit-reset": "1234567890"},
             request=Request("GET", "http://test.com"),
         )
-        client.client.get = AsyncMock(
+        client.client.get = AsyncMock(  # type: ignore[method-assign]
             side_effect=HTTPStatusError(
                 "Rate limit", request=mock_response.request, response=mock_response
             )
