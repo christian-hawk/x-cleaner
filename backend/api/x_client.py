@@ -14,8 +14,12 @@ from typing import List, Optional, Tuple, Type
 
 import httpx
 from httpx import HTTPStatusError, RequestError
+from dotenv import load_dotenv
 
 from ..models import XAccount
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class XAPIError(Exception):
@@ -61,6 +65,25 @@ class XAPIClient:
                 "X API Bearer Token not provided. Set X_API_BEARER_TOKEN "
                 "environment variable or pass bearer_token parameter."
             )
+        
+        # Clean token: remove whitespace and check format
+        self.bearer_token = self.bearer_token.strip()
+        if not self.bearer_token:
+            raise ValueError(
+                "X API Bearer Token is empty after cleaning. "
+                "Check your X_API_BEARER_TOKEN environment variable."
+            )
+        
+        # Log token info (first/last few chars for debugging, not full token)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(
+            "Initializing X API client - Token length: %d, "
+            "Starts with: %s..., Ends with: ...%s",
+            len(self.bearer_token),
+            self.bearer_token[:4] if len(self.bearer_token) > 4 else "N/A",
+            self.bearer_token[-4:] if len(self.bearer_token) > 4 else "N/A",
+        )
 
         self.headers = {
             "Authorization": f"Bearer {self.bearer_token}",

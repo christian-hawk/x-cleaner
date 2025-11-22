@@ -7,6 +7,7 @@ and data export/import functionality.
 
 import platform
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -24,7 +25,7 @@ from streamlit_app.utils import (
 
 st.set_page_config(
     page_title="Settings - X-Cleaner",
-    page_icon="⚙️",
+    page_icon="🔧",
     layout="wide",
 )
 
@@ -33,31 +34,80 @@ st.markdown("Configure X-Cleaner and manage your data")
 
 st.markdown("---")
 
-# Scan Management Section
+# Scan Management Section - MOVED TO TOP FOR VISIBILITY
 st.markdown("## 🔄 Scan Management")
+st.info("💡 **Start here!** Use the section below to scan your X network and categorize accounts.")
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### Trigger New Scan")
-    st.info("""
-    **Important:** To scan your X network, you need to use the CLI.
 
-    Run the following command in your terminal:
-    ```bash
-    python -m backend.cli.commands scan
-    ```
+    # Get username from environment or allow input
+    import os
+    default_username = os.getenv("X_USERNAME", "")
 
-    This will:
-    1. Fetch all accounts you follow from X API
-    2. Analyze and categorize them using Grok AI
-    3. Store results in the database
-    4. Update this dashboard automatically
-    """)
+    username_input = st.text_input(
+        "X Username",
+        value=default_username,
+        help="Your X (Twitter) username (without @). Leave empty to use value from .env file.",
+        placeholder="Enter your X username (e.g., elonmusk)"
+    )
 
-    if st.button("📋 Copy CLI Command", use_container_width=True):
-        st.code("python -m backend.cli.commands scan", language="bash")
-        st.success("Copy the command above to your terminal")
+    username_to_use = ""
+    if username_input and username_input.strip():
+        username_to_use = username_input.strip().lstrip("@")
+    elif default_username and default_username.strip():
+        username_to_use = default_username.strip().lstrip("@")
+
+    if not username_to_use:
+        st.warning("⚠️ Please provide a X Username to start a scan.")
+        st.info("""
+        You can:
+        1. Enter your X Username above (e.g., elonmusk), or
+        2. Set `X_USERNAME` in your `.env` file
+        """)
+        # Disable button if no username
+        st.button("🔄 Start New Scan", type="primary", use_container_width=True, disabled=True)
+    else:
+        if st.button("🔄 Start New Scan", type="primary", use_container_width=True):
+            try:
+                from streamlit_app.api_client import start_scan_sync
+
+                with st.spinner("Starting scan..."):
+                    scan_response = start_scan_sync(username=username_to_use)
+                    job_id = scan_response.get("job_id")
+                    st.session_state["current_scan_job_id"] = job_id
+                    st.success(f"✅ Scan started! Job ID: {job_id}")
+                    st.rerun()
+            except Exception as e:
+                error_message = str(e)
+                if "already running" in error_message.lower():
+                    st.warning("⚠️ A scan is already running for this user. Please wait for it to complete.")
+                elif "404" in error_message or "not found" in error_message.lower():
+                    st.error(f"❌ Username not found: {error_message}. Please check that the username is correct.")
+                elif "400" in error_message or "Bad Request" in error_message:
+                    st.error(f"❌ Invalid request: {error_message}. Please check that username is valid.")
+                else:
+                    st.error(f"❌ Error starting scan: {error_message}")
+
+    # Display current scan progress if available
+    if "current_scan_job_id" in st.session_state:
+        st.markdown("---")
+        st.markdown("### Current Scan Progress")
+        from streamlit_app.components.scan_progress import render_scan_progress
+
+        job_id = st.session_state["current_scan_job_id"]
+        final_status = render_scan_progress(job_id)
+
+        if final_status.get("status") in ("completed", "error"):
+            # Clear job_id after completion
+            del st.session_state["current_scan_job_id"]
+            st.cache_data.clear()
+            if final_status.get("status") == "completed":
+                st.success("✅ Scan completed! Refreshing dashboard...")
+                time.sleep(2)
+                st.rerun()
 
 with col2:
     st.markdown("### Scan Status")
@@ -83,7 +133,7 @@ with col2:
 
         else:
             st.warning("⚠️ No scan data found")
-            st.caption("Run a scan using the CLI to populate the dashboard")
+            st.caption("Start a new scan using the button on the left")
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
@@ -233,7 +283,7 @@ with col2:
         st.code("""
 # X API Credentials
 X_API_BEARER_TOKEN=your_bearer_token_here
-X_USER_ID=your_user_id_here
+X_USERNAME=your_username_here
 
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here

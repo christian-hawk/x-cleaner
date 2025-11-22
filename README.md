@@ -23,7 +23,7 @@ X-Cleaner helps you understand your X network by automatically categorizing the 
 
 ## 🚀 Project Status
 
-**Current Version**: v0.5-alpha (Components Ready, Core Functionality Pending)
+**Current Version**: v0.6-alpha (MVP Web Funcional - Scan via Web Implemented)
 
 **✅ Implemented Components:**
 - X API v2 client with pagination and rate limiting
@@ -38,26 +38,24 @@ X-Cleaner helps you understand your X network by automatically categorizing the 
 - Comprehensive test suite (94% coverage of components)
 - CI/CD with GitHub Actions (mypy, pylint)
 
-**❌ NOT Implemented (CORE FUNCTIONALITY):**
-- **Scan endpoint/command** to fetch real accounts from X API → categorize with Grok → save to DB
-- Web UI to trigger scans
-- Real-time scan progress tracking via WebSocket
+**✅ Recently Implemented (MVP Web Funcional):**
+- **Scan endpoint/service** (`POST /api/scan`) to fetch real accounts from X API → categorize with Grok → save to DB
+- Web UI to trigger scans from Streamlit dashboard
+- Real-time scan progress tracking via REST API polling and WebSocket
 - Background task processing for scans
 
 **📊 What Works Today:**
+- **Scan real X accounts** via web interface or API
 - Generate sample data: `python scripts/populate_sample_data.py`
 - View dashboard: `streamlit run streamlit_app/app.py`
-- Explore 900+ fake accounts across 15 categories
+- Explore accounts across discovered categories
+- Real-time scan progress tracking
 
 **🔜 Next Steps (In Order):**
-1. **Implement scan functionality** - endpoint/service to execute: fetch → categorize → save
-2. **Add web UI to trigger scans** - button in Streamlit dashboard + progress display
-3. **WebSocket for real-time progress** - watch scan happen live
-4. Phase 7: Bulk account management (unfollow operations)
-5. Phase 8: Advanced features (authentication, cloud deployment)
-
-**⚠️ Current Limitation:**
-The project has all the building blocks but cannot yet scan real X accounts. You can only visualize sample/fake data.
+1. Phase 7: Bulk account management (unfollow operations)
+2. Phase 8: Advanced features (authentication, cloud deployment)
+3. Scheduled automatic scans
+4. Historical trend analysis
 
 ## Quick Statistics Example
 
@@ -166,7 +164,7 @@ Create a `.env` file with your credentials:
 ```bash
 # X API Credentials
 X_API_BEARER_TOKEN=your_bearer_token_here
-X_USER_ID=your_user_id_here
+X_USERNAME=your_username_here
 
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here
@@ -200,17 +198,39 @@ streamlit run streamlit_app/app.py
 - API docs: http://localhost:8000/docs
 
 **From the web interface you can:**
-- Trigger scans and watch real-time progress
+- **Trigger scans** via the Settings page (⚙️ Settings → Start New Scan)
+- **Watch real-time progress** with progress bar and status updates
 - Browse discovered categories
 - Explore all accounts with search/filter
 - View interactive charts and analytics
 - Export data in multiple formats
 
-### CLI Commands (Alternative)
+**To start a scan via web:**
+1. Open the dashboard at http://localhost:8501
+2. Navigate to **⚙️ Settings** page
+3. Enter your X User ID (or use value from `.env`)
+4. Click **🔄 Start New Scan**
+5. Watch the progress in real-time
 
-**Scan via CLI:**
+### Scanning Your X Network
+
+**Via Web Interface (Recommended):**
+1. Start the backend API: `uvicorn backend.main:app --reload --port 8000`
+2. Start the dashboard: `streamlit run streamlit_app/app.py`
+3. Go to **⚙️ Settings** page
+4. Click **🔄 Start New Scan** and enter your X User ID
+5. Monitor progress in real-time
+
+**Via API:**
 ```bash
-python -m backend.cli scan
+curl -X POST http://localhost:8000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "your_user_id_here"}'
+```
+
+**Via CLI (Alternative):**
+```bash
+python -m backend.cli.commands scan
 ```
 
 **Export data:**
@@ -286,51 +306,52 @@ See **[Documentation](#documentation)** section for complete planning and implem
 - [x] Development environment configuration
 - [x] Documentation framework (ARCHITECTURE.md, CODE_CONVENTIONS.md)
 
-### Phase 2: X API Integration ⚠️ PARTIAL (Components Only)
+### Phase 2: X API Integration ✅ COMPLETE
 - [x] Implement X API client with async support
 - [x] Add pagination and rate limiting
 - [x] Create Pydantic data models
 - [x] Repository pattern for data access
 - [x] Comprehensive unit tests
-- [ ] **Scan endpoint/service to actually USE the client**
+- [x] **Scan service using the client**
 
-### Phase 3: Grok Integration ⚠️ PARTIAL (Components Only)
+### Phase 3: Grok Integration ✅ COMPLETE
 - [x] Set up xAI SDK integration
 - [x] Implement emergent categorization (2-phase approach)
 - [x] Add confidence scoring
 - [x] Category discovery and assignment
 - [x] Service layer architecture
-- [ ] **Scan endpoint/service to actually USE the categorizer**
+- [x] **Scan service using the categorizer**
 
-### Phase 4: FastAPI Backend ⚠️ PARTIAL (Read-Only)
-- [x] REST API endpoints (accounts, categories, statistics) - READ ONLY
+### Phase 4: FastAPI Backend ✅ COMPLETE
+- [x] REST API endpoints (accounts, categories, statistics)
+- [x] POST /api/scan endpoint to trigger scans
+- [x] GET /api/scan/{job_id}/status and /progress endpoints
+- [x] WebSocket /ws/scan/{job_id} for real-time progress
+- [x] Background task processing
 - [x] Pydantic schemas for request/response
 - [x] Dependency injection
 - [x] 4-layer architecture (Presentation/API/Business/Data)
-- [x] Comprehensive test coverage (94% of components)
-- [ ] **POST /api/scan endpoint to trigger scans**
-- [ ] **WebSocket /ws/scan for real-time progress**
-- [ ] **Background task processing**
+- [x] Comprehensive test coverage
 
-### Phase 5: Web Dashboard (Streamlit) ⚠️ PARTIAL (Visualization Only)
+### Phase 5: Web Dashboard (Streamlit) ✅ COMPLETE
 - [x] Overview dashboard page with metrics
 - [x] Categories explorer with interactive charts
 - [x] Accounts browser with advanced search/filter
 - [x] Advanced analytics page
-- [x] Settings & management page
+- [x] Settings & management page with scan trigger UI
+- [x] Real-time scan progress display
 - [x] Export functionality (JSON/CSV)
 - [x] Sample data generator
 - [x] Deployment documentation
-- [ ] **Scan trigger UI (button to start scan)**
-- [ ] **Real-time scan progress display**
 
-### Phase 5.5: Core Scan Functionality 🚧 **IN PROGRESS - PRIORITY**
-- [ ] Implement scan orchestration service
-- [ ] Create POST /api/scan endpoint
-- [ ] Add background task processing
-- [ ] WebSocket for real-time progress
-- [ ] Add scan UI to Streamlit dashboard
-- [ ] End-to-end integration test
+### Phase 5.5: Core Scan Functionality ✅ COMPLETE
+- [x] Implement scan orchestration service (ScanService)
+- [x] Create POST /api/scan endpoint
+- [x] Add background task processing
+- [x] WebSocket for real-time progress
+- [x] Add scan UI to Streamlit dashboard
+- [x] Progress tracking with callbacks
+- [x] Error handling and validation
 
 ### Phase 6: Quality & Testing ⚠️ PARTIAL
 - [x] GitHub Actions for CI/CD (mypy, pylint)

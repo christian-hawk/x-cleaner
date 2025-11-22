@@ -91,7 +91,7 @@ Edit `.env` and add your credentials:
 ```env
 # X API Credentials
 X_API_BEARER_TOKEN=your_bearer_token_here
-X_USER_ID=your_user_id_here
+X_USERNAME=your_username_here
 
 # Grok API Credentials
 XAI_API_KEY=your_xai_api_key_here
@@ -103,25 +103,65 @@ RATE_LIMIT_DELAY=1.0
 CACHE_EXPIRY_DAYS=7
 ```
 
-### 3. Run Your First Scan
+### 3. Start the Backend API Server
 
-Scan your X following list and categorize accounts:
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+
+Keep this terminal running. The API will be available at `http://localhost:8000`
+
+### 4. Launch the Dashboard
+
+In a **new terminal**, start the Streamlit dashboard:
+
+```bash
+streamlit run streamlit_app/app.py
+```
+
+The dashboard will open at `http://localhost:8501`
+
+### 5. Run Your First Scan via Web Interface
+
+**Option A: Via Web Dashboard (Recommended)**
+
+1. In the dashboard, navigate to **⚙️ Settings** page
+2. In the "Trigger New Scan" section, enter your X User ID
+   - Or leave empty to use the value from your `.env` file
+3. Click **🔄 Start New Scan**
+4. Watch the progress in real-time:
+   - Progress bar showing percentage
+   - Current step (fetching, discovering categories, categorizing, saving)
+   - Metrics (accounts fetched, categorized, saved)
+5. When complete, the dashboard will automatically refresh with new data
+
+**Option B: Via API**
+
+```bash
+curl -X POST http://localhost:8000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "your_user_id_here"}'
+```
+
+This returns a `job_id` that you can use to track progress:
+```bash
+curl http://localhost:8000/api/scan/{job_id}/progress
+```
+
+**Option C: Via CLI (Alternative)**
 
 ```bash
 python -m backend.cli.commands scan
 ```
 
-This will:
-1. Fetch all accounts you follow from X API
-2. Send them to Grok for AI-powered categorization
-3. Store results in the SQLite database
-4. Take approximately 5-10 minutes for 1000 accounts
+**What happens during a scan:**
+1. **Fetch accounts** (0-30%): Fetches all accounts you follow from X API
+2. **Discover categories** (30-50%): Grok AI analyzes accounts and discovers natural categories
+3. **Categorize accounts** (50-90%): Each account is assigned to a discovered category
+4. **Save to database** (90-100%): Results are stored in SQLite database
+5. **Complete**: Dashboard automatically updates with new data
 
-### 4. Launch the Dashboard
-
-```bash
-streamlit run streamlit_app/app.py
-```
+**Duration:** Approximately 5-10 minutes for 1000 accounts
 
 ## Available Commands
 
@@ -214,7 +254,11 @@ python scripts/populate_sample_data.py
 
 ### ⚙️ Settings & Management
 
-- **Scan Management**: Trigger scans and check status
+- **Scan Management**: 
+  - Trigger new scans via web interface
+  - Enter X User ID and start scan with one click
+  - Real-time progress tracking with progress bar and metrics
+  - View scan status and history
 - **Data Export**: Export all or filtered data
 - **Database Management**: View info and perform maintenance
 - **Configuration**: Dashboard and API settings
@@ -226,9 +270,12 @@ python scripts/populate_sample_data.py
 **Problem**: Dashboard shows "No data found"
 
 **Solution**:
-1. Ensure you've run a scan: `python -m backend.cli.commands scan`
-2. Check database exists: `ls -la data/accounts.db`
-3. Try sample data: `python scripts/populate_sample_data.py`
+1. **Via Web**: Go to ⚙️ Settings page and click "🔄 Start New Scan"
+2. **Via API**: `curl -X POST http://localhost:8000/api/scan -H "Content-Type: application/json" -d '{"user_id": "your_user_id"}'`
+3. **Via CLI**: `python -m backend.cli.commands scan`
+4. Check database exists: `ls -la data/accounts.db`
+5. Try sample data: `python scripts/populate_sample_data.py`
+6. Ensure backend API is running: `uvicorn backend.main:app --reload --port 8000`
 
 ### API Rate Limits
 

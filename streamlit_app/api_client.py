@@ -162,6 +162,75 @@ class XCleanerAPIClient:
         """
         return await self._get("/api/statistics/engagement")
 
+    async def _post(self, endpoint: str, json_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Perform POST request to API.
+
+        Args:
+            endpoint: API endpoint path.
+            json_data: Optional JSON data for request body.
+
+        Returns:
+            JSON response as dictionary.
+
+        Raises:
+            httpx.HTTPError: If request fails.
+        """
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}{endpoint}",
+                json=json_data or {},
+            )
+            response.raise_for_status()
+            json_response: Dict[str, Any] = response.json()
+            return json_response
+
+    async def start_scan(
+        self,
+        username: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Start a new scan operation.
+
+        Args:
+            username: X username (without @) to scan following accounts for.
+            user_id: X user ID to scan following accounts for (alternative to username).
+
+        Returns:
+            Scan response with job_id.
+        """
+        json_data: Dict[str, Any] = {}
+        if username and username.strip():
+            json_data["username"] = username.strip().lstrip("@")
+        if user_id and user_id.strip():
+            json_data["user_id"] = user_id.strip()
+        return await self._post("/api/scan", json_data=json_data)
+
+    async def get_scan_status(self, job_id: str) -> Dict[str, Any]:
+        """
+        Get scan status by job ID.
+
+        Args:
+            job_id: Job identifier.
+
+        Returns:
+            Scan status information.
+        """
+        return await self._get(f"/api/scan/{job_id}/status")
+
+    async def get_scan_progress(self, job_id: str) -> Dict[str, Any]:
+        """
+        Get detailed scan progress by job ID.
+
+        Args:
+            job_id: Job identifier.
+
+        Returns:
+            Detailed progress information.
+        """
+        return await self._get(f"/api/scan/{job_id}/progress")
+
 
 # Synchronous wrappers for Streamlit (which doesn't support async directly)
 
@@ -278,3 +347,49 @@ def search_accounts_sync(query: str) -> List[Dict[str, Any]]:
     """
     client = XCleanerAPIClient()
     return run_async(client.search_accounts(query=query))
+
+
+def start_scan_sync(
+    username: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for start_scan.
+
+    Args:
+        username: X username (without @) to scan following accounts for.
+        user_id: X user ID to scan following accounts for (alternative to username).
+
+    Returns:
+        Scan response with job_id.
+    """
+    client = XCleanerAPIClient()
+    return run_async(client.start_scan(username=username, user_id=user_id))
+
+
+def get_scan_status_sync(job_id: str) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for get_scan_status.
+
+    Args:
+        job_id: Job identifier.
+
+    Returns:
+        Scan status information.
+    """
+    client = XCleanerAPIClient()
+    return run_async(client.get_scan_status(job_id=job_id))
+
+
+def get_scan_progress_sync(job_id: str) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for get_scan_progress.
+
+    Args:
+        job_id: Job identifier.
+
+    Returns:
+        Detailed progress information.
+    """
+    client = XCleanerAPIClient()
+    return run_async(client.get_scan_progress(job_id=job_id))
