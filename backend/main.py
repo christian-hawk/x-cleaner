@@ -9,7 +9,7 @@ from typing import Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routes import accounts, statistics
+from backend.api.routes import accounts, scan, statistics
 
 # Create FastAPI application
 app = FastAPI(
@@ -32,6 +32,7 @@ app.add_middleware(
 # Include routers
 app.include_router(accounts.router)
 app.include_router(statistics.router)
+app.include_router(scan.router)
 
 
 @app.get("/")

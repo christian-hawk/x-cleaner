@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # pylint: disable=wrong-import-position
 from streamlit_app.components import charts
+from streamlit_app.components.scan_progress import check_active_scan, render_scan_button
 from streamlit_app.utils import (
     accounts_to_dataframe,
     calculate_category_stats,
@@ -68,6 +69,9 @@ def main() -> None:
     st.title("🧹 X-Cleaner Dashboard")
     st.markdown("### Analyze and Understand Your X Network")
 
+    # Check for active scan first
+    check_active_scan()
+
     # Sidebar
     with st.sidebar:
         st.image("https://abs.twimg.com/icons/apple-touch-icon-192x192.png", width=100)
@@ -77,6 +81,11 @@ def main() -> None:
         st.markdown("📁 Categories")
         st.markdown("👥 Accounts Browser")
         st.markdown("⚙️ Settings")
+        st.markdown("---")
+
+        # Scan controls
+        render_scan_button()
+
         st.markdown("---")
 
         # Refresh button
@@ -94,7 +103,23 @@ def main() -> None:
 
             if not accounts:
                 st.warning("⚠️ No data found. Please run a scan first.")
-                st.info("Use the CLI to scan your X following: `x-cleaner scan`")
+                st.info("👈 Use the **'Start New Scan'** button in the sidebar to begin scanning your X following accounts.")
+                st.markdown("""
+                    ### Getting Started
+
+                    1. Make sure your API credentials are configured in `.env`:
+                       - `X_API_BEARER_TOKEN` - Your X API Bearer Token
+                       - `X_USER_ID` - Your X User ID
+                       - `XAI_API_KEY` - Your xAI/Grok API Key
+
+                    2. Ensure the backend API is running: `python -m backend.main`
+
+                    3. Click **'Start New Scan'** in the sidebar
+
+                    4. Wait for the scan to complete (this may take a few minutes)
+
+                    5. Your results will appear automatically!
+                """)
                 st.stop()
 
             accounts_df = accounts_to_dataframe(accounts)
