@@ -170,13 +170,29 @@ async def start_scan(
                     detail=error_msg,
                 ) from e
             elif x_api_status == 403:
-                error_msg = (
-                    f"X API access forbidden (403). "
-                    f"This may indicate that your API credentials don't have the required permissions, "
-                    f"or your Developer App is not properly attached to a Project."
-                )
-                logger.error("X API PERMISSION ERROR: %s", error_msg)
-                logger.error("Original error: %s", str(e))
+                # Check if it's the "client-not-enrolled" error (App not attached to Project)
+                error_str = str(e)
+                if "client-not-enrolled" in error_str or "attached to a Project" in error_str:
+                    error_msg = (
+                        "X API Error 403: Your Developer App is not attached to a Project. "
+                        "To fix this:\n\n"
+                        "1. Go to https://developer.twitter.com/en/portal/projects-and-apps\n"
+                        "2. Create a new Project (or use an existing one)\n"
+                        "3. Attach your App to the Project\n"
+                        "4. Generate a new Bearer Token from the App that's attached to the Project\n"
+                        "5. Update X_API_BEARER_TOKEN in your .env file with the new token\n\n"
+                        "Note: The Bearer Token must be generated from an App that is attached to a Project. "
+                        "This is required for all Twitter API v2 endpoints."
+                    )
+                else:
+                    error_msg = (
+                        f"X API access forbidden (403). "
+                        f"This may indicate that your API credentials don't have the required permissions, "
+                        f"or your Developer App is not properly attached to a Project. "
+                        f"Original error: {error_str}"
+                    )
+                logger.error("X API PERMISSION ERROR (403): %s", error_msg)
+                logger.error("Full error details: %s", str(e))
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=error_msg,
