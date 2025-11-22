@@ -25,7 +25,7 @@ from streamlit_app.utils import (
 
 st.set_page_config(
     page_title="Settings - X-Cleaner",
-    page_icon="⚙️",
+    page_icon="🔧",
     layout="wide",
 )
 
