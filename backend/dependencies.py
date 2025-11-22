@@ -10,7 +10,10 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from backend.api.grok_client import GrokClient
+from backend.api.x_client import XAPIClient
 from backend.core.services.account_service import AccountService
+from backend.core.services.scan_service import ScanService
 from backend.core.services.statistics_service import StatisticsService
 from backend.database import DatabaseManager
 from backend.db.repositories.account_repository import AccountRepository
@@ -79,6 +82,46 @@ def get_statistics_service(
         Statistics service instance.
     """
     return StatisticsService(
+        account_repository=account_repository,
+        category_repository=category_repository,
+    )
+
+
+def get_x_client() -> XAPIClient:
+    """
+    Dependency for X API client.
+
+    Returns:
+        X API client instance.
+    """
+    return XAPIClient()
+
+
+def get_grok_client() -> GrokClient:
+    """
+    Dependency for Grok API client.
+
+    Returns:
+        Grok API client instance.
+    """
+    return GrokClient()
+
+
+def get_scan_service(
+    x_client: Annotated[XAPIClient, Depends(get_x_client)],
+    grok_client: Annotated[GrokClient, Depends(get_grok_client)],
+    account_repository: Annotated[AccountRepository, Depends(get_account_repository)],
+    category_repository: Annotated[CategoryRepository, Depends(get_category_repository)],
+) -> ScanService:
+    """
+    Dependency for scan service.
+
+    Returns:
+        Scan service instance.
+    """
+    return ScanService(
+        x_client=x_client,
+        grok_client=grok_client,
         account_repository=account_repository,
         category_repository=category_repository,
     )

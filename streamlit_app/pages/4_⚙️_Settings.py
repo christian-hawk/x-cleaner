@@ -7,6 +7,7 @@ and data export/import functionality.
 
 import platform
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -40,24 +41,62 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### Trigger New Scan")
-    st.info("""
-    **Important:** To scan your X network, you need to use the CLI.
 
-    Run the following command in your terminal:
-    ```bash
-    python -m backend.cli.commands scan
-    ```
+    # Get user_id from environment or allow input
+    import os
+    default_user_id = os.getenv("X_USER_ID", "")
 
-    This will:
-    1. Fetch all accounts you follow from X API
-    2. Analyze and categorize them using Grok AI
-    3. Store results in the database
-    4. Update this dashboard automatically
-    """)
+    user_id_input = st.text_input(
+        "X User ID",
+        value=default_user_id,
+        help="Your X (Twitter) user ID. Leave empty to use value from .env file.",
+        placeholder="Enter your X user ID"
+    )
 
-    if st.button("📋 Copy CLI Command", use_container_width=True):
-        st.code("python -m backend.cli.commands scan", language="bash")
-        st.success("Copy the command above to your terminal")
+    user_id_to_use = user_id_input.strip() if user_id_input.strip() else default_user_id
+
+    if not user_id_to_use:
+        st.warning("⚠️ Please provide a X User ID to start a scan.")
+        st.info("""
+        You can:
+        1. Enter your X User ID above, or
+        2. Set `X_USER_ID` in your `.env` file
+        """)
+    else:
+        if st.button("🔄 Start New Scan", type="primary", use_container_width=True):
+            try:
+                from streamlit_app.api_client import start_scan_sync
+
+                with st.spinner("Starting scan..."):
+                    scan_response = start_scan_sync(user_id=user_id_to_use)
+                    job_id = scan_response.get("job_id")
+                    st.session_state["current_scan_job_id"] = job_id
+                    st.success(f"✅ Scan started! Job ID: {job_id}")
+                    st.rerun()
+            except Exception as e:
+                error_message = str(e)
+                if "already running" in error_message.lower():
+                    st.warning("⚠️ A scan is already running for this user. Please wait for it to complete.")
+                else:
+                    st.error(f"❌ Error starting scan: {error_message}")
+
+    # Display current scan progress if available
+    if "current_scan_job_id" in st.session_state:
+        st.markdown("---")
+        st.markdown("### Current Scan Progress")
+        from streamlit_app.components.scan_progress import render_scan_progress
+
+        job_id = st.session_state["current_scan_job_id"]
+        final_status = render_scan_progress(job_id)
+
+        if final_status.get("status") in ("completed", "error"):
+            # Clear job_id after completion
+            del st.session_state["current_scan_job_id"]
+            st.cache_data.clear()
+            if final_status.get("status") == "completed":
+                st.success("✅ Scan completed! Refreshing dashboard...")
+                time.sleep(2)
+                st.rerun()
 
 with col2:
     st.markdown("### Scan Status")
@@ -83,7 +122,7 @@ with col2:
 
         else:
             st.warning("⚠️ No scan data found")
-            st.caption("Run a scan using the CLI to populate the dashboard")
+            st.caption("Start a new scan using the button on the left")
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
