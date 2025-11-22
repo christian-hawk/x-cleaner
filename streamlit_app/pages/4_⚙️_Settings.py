@@ -7,6 +7,7 @@ and data export/import functionality.
 
 import platform
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import streamlit as st
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from streamlit_app.api_client import get_scan_status_sync, trigger_scan_sync
 from streamlit_app.utils import (
     export_to_csv,
     export_to_json,
@@ -40,24 +42,67 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### Trigger New Scan")
+
+    # Initialize session state for scan job tracking
+    if "scan_job_id" not in st.session_state:
+        st.session_state.scan_job_id = None
+    if "scan_running" not in st.session_state:
+        st.session_state.scan_running = False
+
+    # Trigger scan button
+    if st.button("🔄 Trigger New Scan", use_container_width=True, disabled=st.session_state.scan_running):
+        try:
+            response = trigger_scan_sync()
+            st.session_state.scan_job_id = response.get("job_id")
+            st.session_state.scan_running = True
+            st.success(f"✅ Scan started! Job ID: {st.session_state.scan_job_id[:8]}...")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Failed to start scan: {str(e)}")
+
+    # Display scan progress if running
+    if st.session_state.scan_running and st.session_state.scan_job_id:
+        st.markdown("---")
+        st.markdown("### Scan Progress")
+
+        try:
+            status_data = get_scan_status_sync(st.session_state.scan_job_id)
+            status_val = status_data.get("status", "unknown")
+            progress_val = status_data.get("progress", 0)
+            message_val = status_data.get("message", "")
+            error_val = status_data.get("error")
+
+            # Progress bar
+            st.progress(progress_val / 100)
+            st.caption(f"{progress_val}% - {message_val}")
+
+            # Status indicator
+            if status_val == "completed":
+                st.success("✅ Scan completed successfully!")
+                st.session_state.scan_running = False
+                st.cache_data.clear()  # Clear cache to show new data
+                if st.button("🔄 Refresh Dashboard", use_container_width=True):
+                    st.rerun()
+            elif status_val == "error":
+                st.error(f"❌ Scan failed: {error_val or message_val}")
+                st.session_state.scan_running = False
+            elif status_val in ("queued", "running"):
+                # Auto-refresh every 2 seconds while running
+                time.sleep(2)
+                st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Error checking scan status: {str(e)}")
+            st.session_state.scan_running = False
+
     st.info("""
-    **Important:** To scan your X network, you need to use the CLI.
-
-    Run the following command in your terminal:
-    ```bash
-    python -m backend.cli.commands scan
-    ```
-
-    This will:
-    1. Fetch all accounts you follow from X API
-    2. Analyze and categorize them using Grok AI
-    3. Store results in the database
-    4. Update this dashboard automatically
+    **How it works:**
+    1. Click "Trigger New Scan" to start
+    2. The system will fetch all accounts you follow from X API
+    3. AI will analyze and categorize them using Grok
+    4. Results will be saved to the database
+    5. Dashboard will update automatically when complete
     """)
-
-    if st.button("📋 Copy CLI Command", use_container_width=True):
-        st.code("python -m backend.cli.commands scan", language="bash")
-        st.success("Copy the command above to your terminal")
 
 with col2:
     st.markdown("### Scan Status")
@@ -83,7 +128,7 @@ with col2:
 
         else:
             st.warning("⚠️ No scan data found")
-            st.caption("Run a scan using the CLI to populate the dashboard")
+            st.caption("Click 'Trigger New Scan' to populate the dashboard")
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")

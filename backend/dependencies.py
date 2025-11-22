@@ -11,6 +11,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from backend.core.services.account_service import AccountService
+from backend.core.services.scan_service import ScanService
 from backend.core.services.statistics_service import StatisticsService
 from backend.database import DatabaseManager
 from backend.db.repositories.account_repository import AccountRepository
@@ -82,3 +83,15 @@ def get_statistics_service(
         account_repository=account_repository,
         category_repository=category_repository,
     )
+
+
+def get_scan_service(
+    database: Annotated[DatabaseManager, Depends(get_database)],
+) -> ScanService:
+    """
+    Dependency for scan service.
+
+    Returns:
+        Scan service instance.
+    """
+    return ScanService(db_manager=database)
